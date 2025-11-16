@@ -17,3 +17,6 @@ Tracks logs, processes, ports, CPU/RAM and detects suspicious activity through r
 chmod +x scripts/run_dev.sh
 chmod +x scripts/venv-activate.sh
 chmod +x scripts/venv-deactivate.sh
+
+
+#pipelinetest
