@@ -1,0 +1,1 @@
+# Aşırı sudo kullanımı veya yanlış kullanıcı sudo’ları.

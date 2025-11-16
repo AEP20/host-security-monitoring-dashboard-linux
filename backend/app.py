@@ -17,3 +17,11 @@ def create_app():
     return app
 
 app = create_app()
+
+
+
+# create_app() fonksiyonu olur:
+# config.py’den ayarları yükler
+# extensions.py içindeki db, scheduler vs. init eder
+# API blueprint’lerini register eder (metrics_api, logs_api, alerts_api, …)
+# Jinja template klasörünü frontend/templates’e bağlar

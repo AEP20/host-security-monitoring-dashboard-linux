@@ -1,0 +1,1 @@
+# CPU, RAM, disk, network vb bilgisi toplamak.

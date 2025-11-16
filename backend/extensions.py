@@ -1,0 +1,1 @@
+# “Uygulamanın yanına eklenen global araçlar” burada tanımlanır ve create_app() içinde init edilir.
