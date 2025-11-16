@@ -14,7 +14,8 @@ cd "$REPO_DIR" || { echo "[-] Repo directory not found!"; exit 1; }
 
 # 2) Son kodları çek (özel key ile)
 echo "[+] Pulling latest code from GitHub..."
-GIT_SSH_COMMAND="ssh -i $SSH_KEY -o IdentitiesOnly=yes" git pull
+GIT_SSH_COMMAND="ssh -i $SSH_KEY -o IdentitiesOnly=yes" git fetch --all
+git reset --hard origin/main
 
 # 3) Venv aktif et
 echo "[+] Activating virtual environment..."
