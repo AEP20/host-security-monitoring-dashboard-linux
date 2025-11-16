@@ -1,0 +1,57 @@
+🟦 (A) firewall_parser (UFW / iptables)
+
+Çok büyük artı görünürlük sağlar:
+
+Drop edilen paketler
+
+Yeni firewall kuralları
+
+Anormal trafik
+
+🟦 (B) cron_parser
+
+Saldırgan persistence kurmak için cron’a fazlaca güvenir.
+
+Cron loglarını parse etmek → büyük artı.
+
+🟦 (C) file_integrity_monitoring (FIM)
+
+Bu çok büyük bir HIDS özelliğidir:
+
+/etc/passwd değişti mi
+
+/etc/shadow değişti mi
+
+authorized_keys değişti mi
+
+binary’ler hash mismatch verdi mi
+
+Yeni collector → FIM collector
+
+🟦 (D) auditd log parser
+
+Audit logs → Linux’un "Windows Event ID 4688" karşılığıdır.
+
+Aşırı güçlü görünürlük sağlar.
+Ama ağırdır, proje için şart değil.
+
+🟦 (E) nginx / apache log parser
+
+Web server’ı olan makinede:
+
+Directory traversal
+
+SQL injection
+
+brute force
+
+suspicious IP
+
+kriterlerine bakılır.
+
+🟦 (F) journald parser (systemd journal)
+
+Syslog’tan daha detaylıdır.
+Ama projeyi ağırlaştırabilir.
+
+🟦 (G) network connection tracker (ss + tcpdump)

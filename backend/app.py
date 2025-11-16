@@ -1,10 +1,13 @@
 from flask import Flask
 from backend.extensions import db, scheduler
+from backend.api.system_api import system_api
+
 
 def create_app():
     app = Flask(__name__)
     
     app.config.from_pyfile("config.py")
+    app.register_blueprint(system_api)
 
     db.init_app(app)
 

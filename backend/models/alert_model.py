@@ -1,31 +1,30 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text
+from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey
 from backend.models.base import Base, current_time
 
-class LogEventModel(Base):
-    __tablename__ = "log_events"
+class AlertModel(Base):
+    __tablename__ = "alerts"
 
     id = Column(Integer, primary_key=True)
     timestamp = Column(DateTime, default=current_time, index=True)
 
-    log_source = Column(String(50), nullable=False)       # auth, syslog, kernel, dpkg
-    event_type = Column(String(100), nullable=False)      # FAILED_LOGIN, etc.
+    # Hangi rule tetikledi?
+    rule_name = Column(String(100), nullable=False)
 
+    # Severity HIGH/MEDIUM/LOW
+    severity = Column(String(20), nullable=False)
+
+    # Alert açıklaması
     message = Column(Text, nullable=False)
-    user = Column(String(100), nullable=True)
-    ip_address = Column(String(100), nullable=True)
-    process_name = Column(String(200), nullable=True)
 
-    extra_data = Column(Text, nullable=True)  # JSON string
+    # Hangi log event’e bağlı (optional)
+    log_event_id = Column(Integer, ForeignKey("log_events.id"), nullable=True)
 
     def to_dict(self):
         return {
             "id": self.id,
             "timestamp": self.timestamp.isoformat(),
-            "log_source": self.log_source,
-            "event_type": self.event_type,
+            "rule_name": self.rule_name,
+            "severity": self.severity,
             "message": self.message,
-            "user": self.user,
-            "ip_address": self.ip_address,
-            "process_name": self.process_name,
-            "extra_data": self.extra_data,
+            "log_event_id": self.log_event_id,
         }
