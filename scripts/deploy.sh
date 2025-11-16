@@ -5,7 +5,7 @@
 # ----------------------------
 
 REPO_DIR="/opt/HIDS"
-SSH_KEY="$HOME/.ssh/hids_deploy_key"
+SSH_KEY="/etc/hidsssh/hids_deploy_key"
 
 echo "[+] Starting deployment..."
 
