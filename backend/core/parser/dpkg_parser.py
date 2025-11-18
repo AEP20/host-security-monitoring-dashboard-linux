@@ -1,19 +1,31 @@
 import re
 from datetime import datetime
 
-class DpkgParser:
-    VALID_ACTIONS = ["install", "upgrade", "remove", "purge"]
+from backend.core.utils.regex_patterns import (
+    TIMESTAMP,
+    PACKAGE,
+    VERSION,
+    DPKG_ACTIONS
+)
+from backend.core.utils.hacking_tools import HACKING_TOOLS
 
-    # ---- Public API ---------------------------------------------------------
+
+class DpkgParser:
+
+    VALID_ACTIONS = DPKG_ACTIONS
+
+    # Public API
 
     def match(self, line: str) -> bool:
         """Bu satır DPKG formatına uyuyor mu?"""
         if not line:
             return False
 
-        if not re.match(r"^\d{4}-\d{2}-\d{2}", line):
+        # timestamp kontrolü
+        if not TIMESTAMP.match(line):
             return False
 
+        # action kontrolü
         return any(f" {action} " in line for action in self.VALID_ACTIONS)
 
     def parse(self, line: str) -> dict:
@@ -24,7 +36,6 @@ class DpkgParser:
         old_ver, new_ver = self.extract_versions(line)
 
         event_type = self.normalize_event_type(action, old_ver, new_ver)
-
         severity = self.estimate_severity(action, package)
 
         return {
@@ -42,12 +53,13 @@ class DpkgParser:
             "new_version": new_ver,
         }
 
-    # Internal Parsing Helpers
+    # Internal Helpers
+
     def extract_timestamp(self, line):
-        m = re.match(r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})", line)
+        m = TIMESTAMP.match(line)
         if not m:
             return None
-        return datetime.strptime(m.group(1), "%Y-%m-%d %H:%M:%S")
+        return datetime.strptime(line[:19], "%Y-%m-%d %H:%M:%S")
 
     def extract_action(self, line):
         for action in self.VALID_ACTIONS:
@@ -56,31 +68,22 @@ class DpkgParser:
         return "unknown"
 
     def extract_package(self, line):
-        """
-        nmap:arm64 → ("nmap", "arm64")
-        """
-        m = re.search(r"\s([a-zA-Z0-9.+-]+):([a-z0-9]+)\s", line)
+        m = PACKAGE.search(line)
         if not m:
             return None, None
         return m.group(1), m.group(2)
 
     def extract_versions(self, line):
-        """
-        Basit yaklaşım:
-            <old> <new>
-        Upgrade/downgrade ayrımı normalize_event_type içinde yapılır.
-        """
         parts = line.split()
-        # timestamp + action + package, 3 kolon
+
         if len(parts) < 5:
             return "<none>", "<none>"
 
-        old_ver = parts[-2]
-        new_ver = parts[-1]
+        # son iki kolon = old ve new version
+        return parts[-2], parts[-1]
 
-        return old_ver, new_ver
+    # Event Normalization 
 
-    # Event type normalization 
     def normalize_event_type(self, action, old_ver, new_ver):
         if action == "install":
             return "PACKAGE_INSTALL"
@@ -99,30 +102,14 @@ class DpkgParser:
         return "PACKAGE_EVENT"
 
     def is_downgrade(self, old_ver, new_ver):
-        """
-        Çok basit downgrade kontrolü:
-        - Version string alphabetically greater ise downgrade sayılır
-        """
         if old_ver == "<none>" or new_ver == "<none>":
             return False
         return new_ver < old_ver
 
-    # Severity Estimation 
+    # Severity Estimation
+
     def estimate_severity(self, action, package):
-        """
-        - install veya remove → MEDIUM
-        - purge → LOW
-        - upgrade → LOW
-        - hacking tool→ HIGH
-        """
-
-        # geliştirilecek
-        hacking_tools = [
-            "nmap", "netcat", "nc", "hydra", "medusa", "john", "sqlmap",
-            "aircrack-ng", "kismet", "metasploit", "msfconsole"
-        ]
-
-        if package in hacking_tools:
+        if package in HACKING_TOOLS:
             return "HIGH"
 
         if action in ["install", "remove"]:
