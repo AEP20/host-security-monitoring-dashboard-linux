@@ -73,22 +73,6 @@
 # O yüzden:
 # Optional ama güzel bir katkı.
 
-# 🟧 6) BONUS: journalctl --boot veya /var/log/journal (systemd logs)
-
-# Systemd abanlı modern sistemlerde asıl logların çoğu journald üzerinden akar.
-
-# Avantajı:
-# Tüm servis logları tek yerde
-# Zaman, PID, UNIT bilgileri daha düzgün formatlı
-# syslog’a göre daha zengin içerik sağlar
-
-# Eksisi:
-# Dosya olarak okunmaz
-# journalctl -n 50 --since ... gibi komut çalıştırarak alınır
-# parse etmek syslog’a göre daha zordur
-# Senin projen için önerim:
-# ÇOK gerekirse ekle.
-# Zorunlu değil.
 
 # 🟩 7) OPTIONAL: /var/log/apt/history.log
 # dpkg’ye benzer ama özellikle:
@@ -96,3 +80,58 @@
 # hangi paket hangi tarihte güncellendi
 # upgrade/ downgrade geçmişi
 # gibi daha “audit-friendly” bilgiler içerir.
+
+
+import os
+from backend.core.collector.offsets_manager import OffsetManager
+
+
+class LogsCollector:
+    LOG_FILES = {
+        "auth": "/var/log/auth.log",
+        "syslog": "/var/log/syslog",
+        "kernel": "/var/log/kern.log",
+        "dpkg": "/var/log/dpkg.log",
+        "ufw": "/var/log/ufw.log",    
+    }
+
+    def __init__(self, state_file="/opt/HIDS/state/log_offsets.json"):
+        self.offset_manager = OffsetManager(state_file)
+
+    # Public API
+    def collect(self):
+        results = []
+
+        for source, path in self.LOG_FILES.items():
+            lines = self._read_file(source, path)
+            for line in lines:
+                results.append({"source": source, "line": line})
+
+        self.offset_manager.save()
+
+        return results
+
+    # Internal helpers
+    def _read_file(self, source, filepath):
+        if not os.path.exists(filepath):
+            return []  
+
+        last_offset = self.offset_manager.get(source)
+
+        file_size = os.path.getsize(filepath)
+
+        if last_offset > file_size:
+            last_offset = 0  
+            self.offset_manager.set(source, 0)
+
+        new_lines = []
+
+        with open(filepath, "r", errors="ignore") as f:
+            f.seek(last_offset)
+            for line in f:
+                new_lines.append(line.rstrip("\n"))
+
+            new_offset = f.tell()
+            self.offset_manager.set(source, new_offset)
+
+        return new_lines
