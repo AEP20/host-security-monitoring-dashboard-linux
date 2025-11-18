@@ -95,7 +95,7 @@ class LogsCollector:
         "ufw": "/var/log/ufw.log",    
     }
 
-    def __init__(self, state_file="/opt/HIDS/state/log_offsets.json"):
+    def __init__(self, state_file="/var/lib/hids/log_offsets.json"):
         self.offset_manager = OffsetManager(state_file)
 
     # Public API
