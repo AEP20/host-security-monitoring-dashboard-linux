@@ -1,6 +1,6 @@
     # """
     # Her log dosyası için son okunan byte offset'ini saklayan sınıf.
-    # offsetler JSON dosyasında tutulur (ör: /opt/HIDS/state/log_offsets.json)
+    # offsetler JSON dosyasında tutulur (ör: /var/lib/hids/log_offsets.json)
     # """
 
 import os
