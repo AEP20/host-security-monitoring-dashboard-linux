@@ -11,11 +11,11 @@ Görevleri:
 7) Hata durumunda sistemi asla çökertmez.
 """
 
-from backend.core.parser.auth_parser import AuthParser
+# from backend.core.parser.auth_parser import AuthParser
 from backend.core.parser.dpkg_parser import DpkgParser
-from backend.core.parser.kernel_parser import KernelParser
-from backend.core.parser.sys_parser import SysParser
-from backend.core.parser.ufw_parser import UfwParser
+# from backend.core.parser.kernel_parser import KernelParser
+# from backend.core.parser.sys_parser import SysParser
+# from backend.core.parser.ufw_parser import UfwParser
 
 from backend.models.log_model import LogEventModel
 from backend.database import SessionLocal
@@ -25,11 +25,11 @@ class LogDispatcher:
 
     def __init__(self):
         self.parsers = {
-            "auth": AuthParser(),
+            # "auth": AuthParser(),
             "dpkg": DpkgParser(),
-            "kernel": KernelParser(),
-            "syslog": SysParser(),
-            "ufw": UfwParser(),
+            # "kernel": KernelParser(),
+            # "syslog": SysParser(),
+            # "ufw": UfwParser(),
         }
 
     # Ana giriş
