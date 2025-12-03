@@ -1,3 +1,5 @@
+#network_collector
+
 # Açık portlar ve network bağlantılarını keşfetmek.
 # ss -tulnp veya benzeri komutlarla open port’ları çıkarır
 # port → process mapping (mümkünse)

@@ -1,3 +1,5 @@
+#process_collector
+
 # Çalışan process’leri toplamak.
 # psutil ile process listesi
 # CPU / RAM tüketimi
