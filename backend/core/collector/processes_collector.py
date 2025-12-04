@@ -326,7 +326,7 @@ class ProcessCollector:
             p_curr = current[pid]
             events.append(
                 {
-                    "type": "NEW_PROCESS",
+                    "type": "PROCESS_NEW",
                     "timestamp": now_iso,
                     **p_curr,
                 }
@@ -345,7 +345,7 @@ class ProcessCollector:
 
             events.append(
                 {
-                    "type": "TERMINATED_PROCESS",
+                    "type": "PROCESS_TERMINATED",
                     "timestamp": now_iso,
                     "pid": p_prev.get("pid"),
                     "ppid": p_prev.get("ppid"),
@@ -378,7 +378,7 @@ class ProcessCollector:
             if p_prev.get("cmdline") != p_curr.get("cmdline"):
                 events.append(
                     {
-                        "type": "CMDLINE_CHANGED",
+                        "type": "PROCESS_CMDLINE_CHANGED",
                         "timestamp": now_iso,
                         "pid": p_curr.get("pid"),
                         "old": p_prev.get("cmdline"),
@@ -414,7 +414,7 @@ class ProcessCollector:
             if p_curr.get("status") == psutil.STATUS_ZOMBIE:
                 events.append(
                     {
-                        "type": "ZOMBIE_PROCESS",
+                        "type": "PROCESS_ZOMBIE_PROCESS",
                         "timestamp": now_iso,
                         "pid": p_curr.get("pid"),
                         "name": p_curr.get("name"),
@@ -427,7 +427,7 @@ class ProcessCollector:
             if not p_prev.get("exe_deleted") and p_curr.get("exe_deleted"):
                 events.append(
                     {
-                        "type": "EXEC_DELETED",
+                        "type": "PROCESS_EXEC_DELETED",
                         "timestamp": now_iso,
                         "pid": p_curr.get("pid"),
                         "exe": p_curr.get("exe"),
@@ -444,7 +444,7 @@ class ProcessCollector:
             ):
                 events.append(
                     {
-                        "type": "EXEC_HASH_CHANGED",
+                        "type": "PROCESS_EXEC_HASH_CHANGED",
                         "timestamp": now_iso,
                         "pid": p_curr.get("pid"),
                         "exe": p_curr.get("exe"),

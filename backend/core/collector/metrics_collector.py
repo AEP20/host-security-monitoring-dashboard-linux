@@ -32,6 +32,7 @@
 # | **MetricsCollector** | ✖ Hayır        | ✔ Snapshot yazar  | ✔ Evet                     |
 # | **ProcessCollector** | ✖ Hayır        | ✖ Snapshot yazmaz | ✔ Evet (snapshot kullanır) |
 # | **NetworkCollector** | ✖ Hayır        | ✖ Snapshot yazmaz | ✔ Evet (snapshot kullanır) | -->
+
 import os
 import time
 import psutil
@@ -201,3 +202,6 @@ if __name__ == "__main__":
     collector = MetricsCollector(include_per_disk=True, include_per_nic=False)
     snapshot = collector.snapshot()
     print(json.dumps(snapshot, indent=2))
+
+
+# // TODO: CONNECT IT WITH THE EVENT_DISPATCHER
