@@ -158,7 +158,7 @@ class ProcessCollector:
         try:
             with open(self.cache_path, "r") as f:
                 data = json.load(f)
-                # JSON key'leri string gelir, biz de string olarak kullanacağız
+
                 if isinstance(data, dict):
                     return data
                 return {}
@@ -169,7 +169,7 @@ class ProcessCollector:
     # 2) CACHE’E YAZ
     # ---------------------------------------------------
     def save_previous(self, snapshot: Dict[str, Dict[str, Any]]) -> None:
-        # PID key'leri string olduğu için direkt yazabiliriz
+
         os.makedirs(os.path.dirname(self.cache_path), exist_ok=True)
         with open(self.cache_path, "w") as f:
             json.dump(snapshot, f)
@@ -181,7 +181,7 @@ class ProcessCollector:
         if not path:
             return None
 
-        # Daha önce hesapladıysak cache'ten al
+        # cache
         if path in self._hash_cache:
             return self._hash_cache[path]
 
@@ -206,7 +206,6 @@ class ProcessCollector:
         snapshot: Dict[str, Dict[str, Any]] = {}
         now = time.time()
 
-        # attrs ile bir kısım bilgiyi toplu alıyoruz
         for p in psutil.process_iter(
             attrs=[
                 "pid",
@@ -220,7 +219,7 @@ class ProcessCollector:
             ]
         ):
             try:
-                info = p.info  # process_iter(attrs=...) ile gelen dict
+                info = p.info 
 
                 pid = info.get("pid")
                 if pid is None:
@@ -255,7 +254,7 @@ class ProcessCollector:
                     if "(deleted)" in exe or not os.path.exists(exe):
                         exe_deleted = True
 
-                # Opsiyonel detaylar
+                # optional
                 cwd = None
                 open_files = None
                 if self.include_details:
@@ -269,7 +268,7 @@ class ProcessCollector:
                     except (psutil.NoSuchProcess, psutil.AccessDenied):
                         open_files = None
 
-                # Opsiyonel hash
+                # optional
                 exe_hash = None
                 if self.include_hash and exe and not exe_deleted:
                     exe_hash = self._hash_executable(exe)
@@ -296,7 +295,7 @@ class ProcessCollector:
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
             except Exception:
-                # Herhangi başka bir hata collector'ı düşürmesin
+                # hata olursa da devam
                 continue
 
         return snapshot
@@ -322,7 +321,7 @@ class ProcessCollector:
         events: List[Dict[str, Any]] = []
         now_iso = datetime.utcnow().isoformat() + "Z"
 
-        # --- NEW_PROCESS ---
+        # NEW_PROCESS
         for pid in new_pids:
             p_curr = current[pid]
             events.append(
@@ -333,7 +332,7 @@ class ProcessCollector:
                 }
             )
 
-        # --- TERMINATED_PROCESS ---
+        # TERMINATED_PROCESS
         for pid in terminated_pids:
             p_prev = previous[pid]
             create_time = p_prev.get("create_time")
@@ -358,12 +357,12 @@ class ProcessCollector:
                 }
             )
 
-        # --- CHANGES ---
+        # CHANGES
         for pid in common_pids:
             p_prev = previous[pid]
             p_curr = current[pid]
 
-            # EXE değişimi (process hijacking veya binary swap şüphesi)
+            # EXE değişimi
             if p_prev.get("exe") != p_curr.get("exe"):
                 events.append(
                     {
@@ -399,7 +398,7 @@ class ProcessCollector:
                     }
                 )
 
-            # STATUS değişimi (özellikle ZOMBIE önemli)
+            # STATUS değişimi (özellikle ZOMBIE)
             if p_prev.get("status") != p_curr.get("status"):
                 events.append(
                     {
@@ -411,7 +410,7 @@ class ProcessCollector:
                     }
                 )
 
-            # ZOMBIE process (ayrı event)
+            # ZOMBIE process 
             if p_curr.get("status") == psutil.STATUS_ZOMBIE:
                 events.append(
                     {
@@ -512,7 +511,7 @@ class ProcessCollector:
 if __name__ == "__main__":
     collector = ProcessCollector(
         cache_path=CACHE_PATH,
-        include_hash=False,     # istersen True yapabilirsin
-        include_details=False,  # istersen True yapabilirsin
+        include_hash=False,     # optional, simdilik false
+        include_details=False,  # optional, simdilik false
     )
     collector.test_once()
