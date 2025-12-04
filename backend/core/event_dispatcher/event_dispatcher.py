@@ -68,7 +68,7 @@ from models.process_event_model import ProcessEventModel
 from models.log_model import LogEvent
 from models.metric_model import Metric
 from models.alert_model import Alert
-# from models.network_model import NetworkEvent
+# from models.network_event_model import NetworkEvent
 
 class EventDispatcher:
 

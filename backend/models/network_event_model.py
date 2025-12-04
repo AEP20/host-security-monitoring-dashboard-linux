@@ -1,0 +1,2 @@
+# TO:DO network event model which will data provided from the network collector
+# network collector (events will be created in here) -> event_dispatcher (in the event_dispatcher events will ve wrote to the db)
