@@ -1,21 +1,23 @@
 #network_collector
 
-# Açık portlar ve network bağlantılarını keşfetmek.
-# ss -tulnp veya benzeri komutlarla open port’ları çıkarır
-# port → process mapping (mümkünse)
-# network bağlantı sayısı
-# Bu veri, port_exposure kuralında kullanılır.
-
 # 🟦 📌 NETWORK COLLECTOR — (Snapshot)
 # Nasıl çalışmalı?
-# 2 seçenek:
-# A) psutil.net_connections()
-# en temiz yöntem:
-# port
-# pid
-# ip, local addr, remote addr
-# Ne tutacağız?
-# 5 saniyede bir sistemin anlık network durumunu göreceğiz.
-# Değişimleri algılamayı rule engine yapar:
-# yeni port açıld
-# process yeni bir dış IP’ye bağlandı
+# A) psutil
+
+# | Görev                         | Tür   | Açıklama                                                                |
+# | ----------------------------- | ----- | ----------------------------------------------------------------------- |
+# | *Interface I/O ölçümü*      | STATE | Her interface için trafik istatistikleri (bytes/packets, errors, drops) |
+# | *Aktif bağlantı listesi*    | STATE | Sistemdeki tüm TCP/UDP bağlantılarının snapshot’ı                       |
+# | *Yeni bağlantı tespiti*     | EVENT | Snapshot diff ile tespit edilen yeni remote IP/port bağlantıları        |
+# | *Bağlantı kapanması*        | EVENT | Önceki snapshot’ta olup şu anda olmayan bağlantılar                     |
+# | *Yeni listening port*       | EVENT | Bir process’in yeni bir LISTEN port açması (server davranışı)           |
+# | *Process–connection eşleme* | STATE | Her bağlantının hangi PID/process tarafından açıldığının belirlenmesi   |
+
+# Çalışma Mantığı (Özet)
+# -Local JSON cache → previous snapshot olarak yüklenir
+# •⁠  ⁠psutil ile current snapshot toplanır
+# •⁠  ⁠previous vs current → diff yapılır
+# •⁠  ⁠NEW_CONNECTION, CLOSED_CONNECTION, NEW_LISTEN_PORT gibi event’ler oluşturulur
+# •⁠  ⁠Event’ler DB’ye veya mesaj kuyruğuna gönderilir
+# •⁠  ⁠current snapshot → RAM’de previous olarak overwrite edilir
+# •⁠  ⁠current snapshot → local cache’e overwrite edilerek kaydedilir
