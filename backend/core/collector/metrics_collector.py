@@ -51,6 +51,7 @@ class MetricsCollector:
     def snapshot(self):
         now = time.time()
         return {
+            "type": "METRIC_SNAPSHOT",
             "timestamp": now,
             "cpu": self._collect_cpu(),
             "memory": self._collect_memory(),
@@ -191,6 +192,7 @@ class MetricsCollector:
         uptime_seconds = now - boot_time
 
         return {
+            "type": "METRIC_SNAPSHOT",
             "boot_time": boot_time,
             "uptime_seconds": uptime_seconds,
         }
@@ -202,6 +204,3 @@ if __name__ == "__main__":
     collector = MetricsCollector(include_per_disk=True, include_per_nic=False)
     snapshot = collector.snapshot()
     print(json.dumps(snapshot, indent=2))
-
-
-# // TODO: CONNECT IT WITH THE EVENT_DISPATCHER
