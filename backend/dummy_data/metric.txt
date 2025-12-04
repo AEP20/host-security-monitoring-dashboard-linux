@@ -1,0 +1,204 @@
+{
+  "type": "METRIC_SNAPSHOT",
+  "timestamp": 1764843341.3818402,
+  "cpu": {
+    "total_percent": 26.8,
+    "per_cpu_percent": [
+      0.0,
+      8.3,
+      100.0,
+      9.1
+    ],
+    "load_average": {
+      "1m": 0.08837890625,
+      "5m": 0.10888671875,
+      "15m": 0.08984375
+    },
+    "cpu_count_logical": 4,
+    "cpu_count_physical": 4
+  },
+  "memory": {
+    "ram": {
+      "total": 8319750144,
+      "used": 846200832,
+      "available": 7473549312,
+      "free": 1388335104,
+      "percent": 10.2
+    },
+    "swap": {
+      "total": 0,
+      "used": 0,
+      "free": 0,
+      "percent": 0.0
+    }
+  },
+  "disk": [
+    {
+      "mount": "/",
+      "fstype": "ext4",
+      "total": 125281185792,
+      "used": 27767779328,
+      "free": 92369485824,
+      "percent": 23.1
+    },
+    {
+      "mount": "/snap/bare/5",
+      "fstype": "squashfs",
+      "total": 131072,
+      "used": 131072,
+      "free": 0,
+      "percent": 100.0
+    },
+    {
+      "mount": "/snap/core20/2672",
+      "fstype": "squashfs",
+      "total": 62521344,
+      "used": 62521344,
+      "free": 0,
+      "percent": 100.0
+    },
+    {
+      "mount": "/snap/core20/2683",
+      "fstype": "squashfs",
+      "total": 62521344,
+      "used": 62521344,
+      "free": 0,
+      "percent": 100.0
+    },
+    {
+      "mount": "/snap/gnome-3-38-2004/145",
+      "fstype": "squashfs",
+      "total": 350355456,
+      "used": 350355456,
+      "free": 0,
+      "percent": 100.0
+    },
+    {
+      "mount": "/snap/cups/1128",
+      "fstype": "squashfs",
+      "total": 49938432,
+      "used": 49938432,
+      "free": 0,
+      "percent": 100.0
+    },
+    {
+      "mount": "/snap/core22/2140",
+      "fstype": "squashfs",
+      "total": 72351744,
+      "used": 72351744,
+      "free": 0,
+      "percent": 100.0
+    },
+    {
+      "mount": "/snap/gnome-42-2204/228",
+      "fstype": "squashfs",
+      "total": 517734400,
+      "used": 517734400,
+      "free": 0,
+      "percent": 100.0
+    },
+    {
+      "mount": "/snap/snapd/25205",
+      "fstype": "squashfs",
+      "total": 46399488,
+      "used": 46399488,
+      "free": 0,
+      "percent": 100.0
+    },
+    {
+      "mount": "/snap/gtk-common-themes/1535",
+      "fstype": "squashfs",
+      "total": 96206848,
+      "used": 96206848,
+      "free": 0,
+      "percent": 100.0
+    },
+    {
+      "mount": "/snap/snapd/25585",
+      "fstype": "squashfs",
+      "total": 46530560,
+      "used": 46530560,
+      "free": 0,
+      "percent": 100.0
+    },
+    {
+      "mount": "/boot/firmware",
+      "fstype": "vfat",
+      "total": 528592896,
+      "used": 257220096,
+      "free": 271372800,
+      "percent": 48.7
+    },
+    {
+      "mount": "/snap/core22/2164",
+      "fstype": "squashfs",
+      "total": 72351744,
+      "used": 72351744,
+      "free": 0,
+      "percent": 100.0
+    },
+    {
+      "mount": "/snap/core24/1226",
+      "fstype": "squashfs",
+      "total": 65011712,
+      "used": 65011712,
+      "free": 0,
+      "percent": 100.0
+    },
+    {
+      "mount": "/snap/mesa-2404/1166",
+      "fstype": "squashfs",
+      "total": 183107584,
+      "used": 183107584,
+      "free": 0,
+      "percent": 100.0
+    },
+    {
+      "mount": "/snap/chromium/3306",
+      "fstype": "squashfs",
+      "total": 182190080,
+      "used": 182190080,
+      "free": 0,
+      "percent": 100.0
+    },
+    {
+      "mount": "/snap/gnome-46-2404/147",
+      "fstype": "squashfs",
+      "total": 643956736,
+      "used": 643956736,
+      "free": 0,
+      "percent": 100.0
+    },
+    {
+      "mount": "/snap/cups/1132",
+      "fstype": "squashfs",
+      "total": 49938432,
+      "used": 49938432,
+      "free": 0,
+      "percent": 100.0
+    },
+    {
+      "mount": "/snap/chromium/3312",
+      "fstype": "squashfs",
+      "total": 182190080,
+      "used": 182190080,
+      "free": 0,
+      "percent": 100.0
+    }
+  ],
+  "network": {
+    "bytes_sent": 473991362,
+    "bytes_recv": 2149280910,
+    "packets_sent": 1510229,
+    "packets_recv": 2978016,
+    "errin": 0,
+    "errout": 0,
+    "dropin": 680278,
+    "dropout": 0
+  },
+  "system": {
+    "type": "METRIC_SNAPSHOT",
+    "boot_time": 1763476977.0,
+    "uptime_seconds": 1366364.4846448898
+  }
+}

@@ -1,0 +1,155 @@
+(venv) ahmetemreparmaksiz@raspberrypi:/opt/HIDS/backend/core/collector$ sudo $(which python3) processes_collector.py
+
+===== PROCESS COLLECTOR TEST =====
+
+/opt/HIDS/backend/core/collector/processes_collector.py:322: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  now_iso = datetime.utcnow().isoformat() + "Z"
+[EVENT] PROCESS_NEW
+{
+  "type": "PROCESS_NEW",
+  "timestamp": "2025-12-04T10:17:59.218729Z",
+  "pid": 934893,
+  "ppid": 934891,
+  "name": "sudo",
+  "exe": "/usr/lib/cargo/bin/sudo",
+  "cmdline": [
+    "sudo",
+    "/opt/HIDS/venv/bin/python3",
+    "processes_collector.py"
+  ],
+  "username": "ahmetemreparmaksiz",
+  "status": "sleeping",
+  "create_time": 1764843478.64,
+  "collected_at": 1764843479.124745,
+  "cpu_percent": 0.0,
+  "memory_rss": 2109440,
+  "memory_vms": 10637312,
+  "exe_deleted": false,
+  "exe_hash": null,
+  "cwd": null,
+  "open_files": null
+}
+[EVENT] PROCESS_NEW
+{
+  "type": "PROCESS_NEW",
+  "timestamp": "2025-12-04T10:17:59.218729Z",
+  "pid": 934891,
+  "ppid": 934264,
+  "name": "sudo",
+  "exe": "/usr/lib/cargo/bin/sudo",
+  "cmdline": [
+    "sudo",
+    "/opt/HIDS/venv/bin/python3",
+    "processes_collector.py"
+  ],
+  "username": "ahmetemreparmaksiz",
+  "status": "sleeping",
+  "create_time": 1764843478.63,
+  "collected_at": 1764843479.124745,
+  "cpu_percent": 0.0,
+  "memory_rss": 4505600,
+  "memory_vms": 10637312,
+  "exe_deleted": false,
+  "exe_hash": null,
+  "cwd": null,
+  "open_files": null
+}
+[EVENT] PROCESS_NEW
+{
+  "type": "PROCESS_NEW",
+  "timestamp": "2025-12-04T10:17:59.218729Z",
+  "pid": 934894,
+  "ppid": 934893,
+  "name": "python3",
+  "exe": "/usr/bin/python3.13",
+  "cmdline": [
+    "/opt/HIDS/venv/bin/python3",
+    "processes_collector.py"
+  ],
+  "username": "root",
+  "status": "running",
+  "create_time": 1764843478.64,
+  "collected_at": 1764843479.124745,
+  "cpu_percent": 0.0,
+  "memory_rss": 19365888,
+  "memory_vms": 27623424,
+  "exe_deleted": false,
+  "exe_hash": null,
+  "cwd": null,
+  "open_files": null
+}
+[EVENT] PROCESS_NEW
+{
+  "type": "PROCESS_NEW",
+  "timestamp": "2025-12-04T10:17:59.218729Z",
+  "pid": 934884,
+  "ppid": 2,
+  "name": "kworker/u16:3-kvfree_rcu_reclaim",
+  "exe": "",
+  "cmdline": [],
+  "username": "root",
+  "status": "idle",
+  "create_time": 1764843473.0,
+  "collected_at": 1764843479.124745,
+  "cpu_percent": 0.0,
+  "memory_rss": 0,
+  "memory_vms": 0,
+  "exe_deleted": false,
+  "exe_hash": null,
+  "cwd": null,
+  "open_files": null
+}
+[EVENT] PROCESS_TERMINATED
+{
+  "type": "PROCESS_TERMINATED",
+  "timestamp": "2025-12-04T10:17:59.218729Z",
+  "pid": 934109,
+  "ppid": 2,
+  "name": "kworker/3:0H",
+  "exe": "",
+  "username": "root",
+  "create_time": 1764842819.4,
+  "run_time": 659.8187727928162
+}
+[EVENT] PROCESS_TERMINATED
+{
+  "type": "PROCESS_TERMINATED",
+  "timestamp": "2025-12-04T10:17:59.218729Z",
+  "pid": 934880,
+  "ppid": 934264,
+  "name": "sudo",
+  "exe": "/usr/lib/cargo/bin/sudo",
+  "username": "ahmetemreparmaksiz",
+  "create_time": 1764843472.81,
+  "run_time": 6.408779621124268
+}
+[EVENT] PROCESS_TERMINATED
+{
+  "type": "PROCESS_TERMINATED",
+  "timestamp": "2025-12-04T10:17:59.218729Z",
+  "pid": 934883,
+  "ppid": 934882,
+  "name": "python3",
+  "exe": "/usr/bin/python3.13",
+  "username": "root",
+  "create_time": 1764843472.82,
+  "run_time": 6.398783922195435
+}
+[EVENT] PROCESS_TERMINATED
+{
+  "type": "PROCESS_TERMINATED",
+  "timestamp": "2025-12-04T10:17:59.218729Z",
+  "pid": 934882,
+  "ppid": 934880,
+  "name": "sudo",
+  "exe": "/usr/lib/cargo/bin/sudo",
+  "username": "ahmetemreparmaksiz",
+  "create_time": 1764843472.82,
+  "run_time": 6.398786306381226
+}
+
+Snapshot boyutu: 206
+Cache path: /var/lib/hids-cache/process_prev.json
+===================================
+
+(venv) ahmetemreparmaksiz@raspberrypi:/opt/HIDS/backend/core/collector$ 
