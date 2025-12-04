@@ -38,23 +38,17 @@ import psutil
 
 
 class MetricsCollector:
-  
+
     def __init__(self, include_per_disk=False, include_per_nic=False):
-    
         self.include_per_disk = include_per_disk
         self.include_per_nic = include_per_nic
 
-    
+    # Public API
     def collect(self):
-     
         return self.snapshot()
 
     def snapshot(self):
-        """
-        Anlık sistem metriklerini tek bir dict içinde toplar.
-        """
         now = time.time()
-
         return {
             "timestamp": now,
             "cpu": self._collect_cpu(),
@@ -64,13 +58,10 @@ class MetricsCollector:
             "system": self._collect_system(),
         }
 
-    # ---- Internal helpers ----
-
+    # ---------------------------------------------------
+    # CPU
+    # ---------------------------------------------------
     def _collect_cpu(self):
-        """
-        CPU kullanım bilgisi + load average.
-        """
-        
         total_percent = psutil.cpu_percent(interval=0.1)
         per_cpu_percent = psutil.cpu_percent(interval=None, percpu=True)
 
@@ -79,7 +70,6 @@ class MetricsCollector:
             try:
                 load1, load5, load15 = os.getloadavg()
             except OSError:
-                
                 pass
 
         return {
@@ -94,10 +84,10 @@ class MetricsCollector:
             "cpu_count_physical": psutil.cpu_count(logical=False),
         }
 
+    # ---------------------------------------------------
+    # MEMORY
+    # ---------------------------------------------------
     def _collect_memory(self):
-        """
-        RAM + swap kullanımı.
-        """
         mem = psutil.virtual_memory()
         swap = psutil.swap_memory()
 
@@ -117,8 +107,10 @@ class MetricsCollector:
             },
         }
 
+    # ---------------------------------------------------
+    # DISK
+    # ---------------------------------------------------
     def _collect_disk(self):
-    
         disks = []
 
         if self.include_per_disk:
@@ -127,7 +119,6 @@ class MetricsCollector:
                 try:
                     usage = psutil.disk_usage(mount)
                 except PermissionError:
-              
                     continue
 
                 disks.append(
@@ -141,7 +132,6 @@ class MetricsCollector:
                     }
                 )
         else:
-            
             try:
                 usage = psutil.disk_usage("/")
                 disks.append(
@@ -159,12 +149,13 @@ class MetricsCollector:
 
         return disks
 
+    # ---------------------------------------------------
+    # NETWORK IO (NOT CONNECTIONS)
+    # ---------------------------------------------------
     def _collect_network(self):
-    
         net = psutil.net_io_counters(pernic=self.include_per_nic)
 
         if self.include_per_nic:
-            # Her interface için ayrı ayrı
             result = {}
             for iface, stats in net.items():
                 result[iface] = {
@@ -179,7 +170,6 @@ class MetricsCollector:
                 }
             return result
 
-        # Sistem genel toplam
         return {
             "bytes_sent": net.bytes_sent,
             "bytes_recv": net.bytes_recv,
@@ -191,29 +181,23 @@ class MetricsCollector:
             "dropout": net.dropout,
         }
 
+    # ---------------------------------------------------
+    # SYSTEM INFO (NO PROCESS DATA)
+    # ---------------------------------------------------
     def _collect_system(self):
-      
         boot_time = psutil.boot_time()
         now = time.time()
         uptime_seconds = now - boot_time
 
-        # Process sayısı – çok ağır olmaması için sadece pids uzunluğunu al
-        try:
-            process_count = len(psutil.pids())
-        except Exception:
-            process_count = None
-
         return {
             "boot_time": boot_time,
             "uptime_seconds": uptime_seconds,
-            "process_count": process_count,
         }
 
 
-# Lokal test için: python metrics_collector.py
+# Lokal test için
 if __name__ == "__main__":
     import json
-
     collector = MetricsCollector(include_per_disk=True, include_per_nic=False)
     snapshot = collector.snapshot()
     print(json.dumps(snapshot, indent=2))
