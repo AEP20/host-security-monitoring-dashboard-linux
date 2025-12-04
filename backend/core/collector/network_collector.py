@@ -21,3 +21,12 @@
 # •⁠  ⁠Event’ler DB’ye veya mesaj kuyruğuna gönderilir
 # •⁠  ⁠current snapshot → RAM’de previous olarak overwrite edilir
 # •⁠  ⁠current snapshot → local cache’e overwrite edilerek kaydedilir
+
+# oluşturulan eventler event_dispatchera gidip orada dbye kaydolacağı için eventlerin başında  NET_ veya CONNECTION_ olarak başlamalıdır.
+# event_dispatcher icindeki kısım aşağıdaki gibidir,
+
+        # # NETWORK
+        # if etype.startswith("NET_") or etype.startswith("CONNECTION_"):
+        #     return self._handle_network(event)
+
+
