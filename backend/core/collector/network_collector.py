@@ -194,21 +194,10 @@ import psutil
 
 
 class NetworkCollector:
-    """
-    Network snapshot + diff → NET_* eventlerini üretir.
-    Üretilen eventler:
-      - NET_NEW_CONNECTION
-      - NET_CLOSED_CONNECTION
-      - NET_NEW_LISTEN_PORT
-      - NET_CLOSED_LISTEN_PORT
-      - NET_INTERFACE_STATS
-      - NET_SNAPSHOT
-    """
 
     def __init__(self, state_file="/var/lib/hids/network_state.json"):
         self.state_file = state_file
 
-    # Scheduler çağırır → event listesi döner
     def step(self):
         prev = self._load_previous_state()
         curr = self._build_snapshot()
@@ -216,9 +205,7 @@ class NetworkCollector:
 
         events = []
 
-        # -----------------------------
-        # 1) NET_SNAPSHOT (STATE)
-        # -----------------------------
+        # State snapshot (interfaces + connections)
         events.append({
             "type": "NET_SNAPSHOT",
             "timestamp": ts,
@@ -226,9 +213,7 @@ class NetworkCollector:
             "connections": curr["connections"]
         })
 
-        # -----------------------------
-        # 2) NET_INTERFACE_STATS (STATE)
-        # -----------------------------
+        # Per-interface stats
         for iface, stats in curr["interfaces"].items():
             events.append({
                 "type": "NET_INTERFACE_STATS",
@@ -237,22 +222,18 @@ class NetworkCollector:
                 **stats
             })
 
-        # -----------------------------
-        # 3) DIFF → NET_NEW_*, NET_CLOSED_*
-        # -----------------------------
+        # DIFF events
         events.extend(self._diff_connection_events(
             prev.get("connections", []),
             curr.get("connections", []),
             ts
         ))
 
-        # Snapshot kaydet
         self._save_state(curr)
-
         return events
 
     # ============================================================
-    # SNAPSHOT TOPLAYICI
+    # SNAPSHOT BUILD
     # ============================================================
     def _build_snapshot(self):
         return {
@@ -264,6 +245,7 @@ class NetworkCollector:
     def _collect_interface_io(self):
         counters = psutil.net_io_counters(pernic=True)
         out = {}
+
         for iface, c in counters.items():
             out[iface] = {
                 "bytes_sent": c.bytes_sent,
@@ -273,7 +255,7 @@ class NetworkCollector:
                 "errin": c.errin,
                 "errout": c.errout,
                 "dropin": c.dropin,
-                "dropout": c.dropout,
+                "dropout": c.dropout
             }
         return out
 
@@ -282,22 +264,24 @@ class NetworkCollector:
         out = []
 
         for c in conns:
-            # LADDR
             l_ip = getattr(c.laddr, "ip", None) if c.laddr else None
             l_port = getattr(c.laddr, "port", None) if c.laddr else None
-
-            # RADDR
             r_ip = getattr(c.raddr, "ip", None) if c.raddr else None
             r_port = getattr(c.raddr, "port", None) if c.raddr else None
 
-            # Protocol
             proto = "tcp" if c.type == socket.SOCK_STREAM else "udp"
 
-            # Process name
+            # process name safety
             try:
-                pname = psutil.Process(c.pid).name() if c.pid else None
+                pname = psutil.Process(c.pid).name() if c.pid else "unknown"
             except Exception:
-                pname = None
+                pname = "unknown"
+
+            # UDP "listen" fix
+            is_listen = (
+                (c.status == psutil.CONN_LISTEN) or
+                (c.type == socket.SOCK_DGRAM and not r_ip)
+            )
 
             out.append({
                 "pid": c.pid,
@@ -308,17 +292,18 @@ class NetworkCollector:
                 "raddr_ip": r_ip,
                 "raddr_port": r_port,
                 "status": c.status,
-                "is_listen": (c.status == psutil.CONN_LISTEN)
+                "is_listen": is_listen,
             })
 
         return out
 
     # ============================================================
-    # DIFF → 4 adet EVENT üretir
+    # DIFF ENGINE
     # ============================================================
     def _diff_connection_events(self, prev, curr, ts):
         events = []
 
+        # improved key (no status)
         def key(c):
             return (
                 c.get("pid"),
@@ -326,7 +311,6 @@ class NetworkCollector:
                 c.get("laddr_port"),
                 c.get("raddr_ip"),
                 c.get("raddr_port"),
-                c.get("status"),
                 c.get("protocol"),
             )
 
@@ -336,46 +320,34 @@ class NetworkCollector:
         prev_keys = set(prev_map.keys())
         curr_keys = set(curr_map.keys())
 
-        # ---------------- NEW -----------------
+        # NEW CONNECTIONS
         for k in curr_keys - prev_keys:
             c = curr_map[k]
 
             if c["is_listen"]:
-                # ✔ NET_NEW_LISTEN_PORT
                 events.append({
                     "type": "NET_NEW_LISTEN_PORT",
                     "timestamp": ts,
-                    "pid": c["pid"],
-                    "process_name": c["process_name"],
-                    "laddr_ip": c["laddr_ip"],
-                    "laddr_port": c["laddr_port"],
-                    "protocol": c["protocol"],
+                    **c
                 })
             elif c["raddr_ip"]:
-                # ✔ NET_NEW_CONNECTION
                 events.append({
                     "type": "NET_NEW_CONNECTION",
                     "timestamp": ts,
                     **c
                 })
 
-        # ---------------- CLOSED -----------------
+        # CLOSED CONNECTIONS
         for k in prev_keys - curr_keys:
             c = prev_map[k]
 
             if c["is_listen"]:
-                # ✔ NET_CLOSED_LISTEN_PORT
                 events.append({
                     "type": "NET_CLOSED_LISTEN_PORT",
                     "timestamp": ts,
-                    "pid": c["pid"],
-                    "process_name": c["process_name"],
-                    "laddr_ip": c["laddr_ip"],
-                    "laddr_port": c["laddr_port"],
-                    "protocol": c["protocol"],
+                    **c
                 })
             elif c["raddr_ip"]:
-                # ✔ NET_CLOSED_CONNECTION
                 events.append({
                     "type": "NET_CLOSED_CONNECTION",
                     "timestamp": ts,
@@ -385,12 +357,11 @@ class NetworkCollector:
         return events
 
     # ============================================================
-    # STATE CACHE
+    # STATE PERSISTENCE
     # ============================================================
     def _load_previous_state(self):
         if not os.path.exists(self.state_file):
             return {"connections": []}
-
         try:
             with open(self.state_file, "r") as f:
                 return json.load(f)
@@ -404,3 +375,14 @@ class NetworkCollector:
                 json.dump(snap, f)
         except:
             pass
+
+
+# TEST
+if __name__ == "__main__":
+    nc = NetworkCollector()
+    events = nc.step()
+
+    print("\n===== NETWORK COLLECTOR TEST OUTPUT =====\n")
+    for e in events:
+        print(json.dumps(e, indent=2))
+        print("-" * 60)
