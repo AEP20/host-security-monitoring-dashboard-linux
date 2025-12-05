@@ -1,6 +1,7 @@
 from flask import Flask
-from backend.extensions import db, scheduler
+from backend.extensions import scheduler
 from backend.api.system_api import system_api
+from backend.database import init_db
 
 
 def create_app():
@@ -9,7 +10,7 @@ def create_app():
     app.config.from_pyfile("config.py")
     app.register_blueprint(system_api)
 
-    db.init_app(app)
+    init_db()
 
     scheduler.init_app(app)
     scheduler.start()
@@ -19,12 +20,5 @@ def create_app():
 
     return app
 
+
 app = create_app()
-
-
-
-# create_app() fonksiyonu olur:
-# config.py’den ayarları yükler
-# extensions.py içindeki db, scheduler vs. init eder
-# API blueprint’lerini register eder (metrics_api, logs_api, alerts_api, …)
-# Jinja template klasörünü frontend/templates’e bağlar
