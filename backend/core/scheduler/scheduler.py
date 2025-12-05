@@ -155,43 +155,52 @@ class Scheduler:
     # ---------------------------------------------------------
     # Threadleri başlat
     # ---------------------------------------------------------
-    def start(self):
-        """
-        Scheduler tüm thread’leri başlatır.
-        """
-        print("[Scheduler] Starting all collectors...")
+def start(self):
+    """
+    Scheduler tüm thread’leri başlatır.
+    """
+    print("[Scheduler] Starting all collectors...")
 
-        self.threads = [
-            threading.Thread(
-                target=self._run_collector_loop,
-                args=(self.metrics_collector, 60, "MetricsCollector"),
-                daemon=True,
-            ),
-            threading.Thread(
-                target=self._run_collector_loop,
-                args=(self.process_collector, 10, "ProcessCollector"),
-                daemon=True,
-            ),
-            threading.Thread(
-                target=self._run_collector_loop,
-                args=(self.network_collector, 10, "NetworkCollector"),
-                daemon=True,
-            ),
-            threading.Thread(
-                target=self._run_log_collector,
-                daemon=True,
-            ),
-            threading.Thread(
-                target=self._run_config_checker,
-                daemon=True,
-            ),
-        ]
+    self.threads = [
+        # METRICS → özel snapshot loop
+        threading.Thread(
+            target=self._run_metrics_loop,
+            args=(60,),
+            daemon=True,
+        ),
 
-        # Thread'leri başlat
-        for t in self.threads:
-            t.start()
+        # PROCESS → step() çalışır, event listesi döndürür
+        threading.Thread(
+            target=self._run_collector_loop,
+            args=(self.process_collector, 10, "ProcessCollector"),
+            daemon=True,
+        ),
 
-        print("[Scheduler] All collectors are running.")
+        # NETWORK → step() çalışır, event listesi döndürür
+        threading.Thread(
+            target=self._run_collector_loop,
+            args=(self.network_collector, 10, "NetworkCollector"),
+            daemon=True,
+        ),
+
+        # LOGS → tail -f mantığı, özel runner
+        threading.Thread(
+            target=self._run_log_collector,
+            daemon=True,
+        ),
+
+        # CONFIG CHECKER → 30–60 dk interval
+        threading.Thread(
+            target=self._run_config_checker,
+            daemon=True,
+        ),
+    ]
+
+    # Thread'leri başlat
+    for t in self.threads:
+        t.start()
+
+    print("[Scheduler] All collectors are running.")
 
 
 # Standalone çalıştırmak için
