@@ -195,59 +195,70 @@ import psutil
 
 class NetworkCollector:
     """
-    Network snapshot + diff → event üretir.
-    - Interface I/O (STATE)
-    - Connection listesi (STATE)
-    - Yeni bağlantı, kapanan bağlantı (EVENT)
-    - Yeni/kapalı LISTEN port (EVENT)
+    Network snapshot + diff → NET_* eventlerini üretir.
+    Üretilen eventler:
+      - NET_NEW_CONNECTION
+      - NET_CLOSED_CONNECTION
+      - NET_NEW_LISTEN_PORT
+      - NET_CLOSED_LISTEN_PORT
+      - NET_INTERFACE_STATS
+      - NET_SNAPSHOT
     """
+
     def __init__(self, state_file="/var/lib/hids/network_state.json"):
         self.state_file = state_file
 
-    # Scheduler bu fonksiyonu çağırır
+    # Scheduler çağırır → event listesi döner
     def step(self):
         prev = self._load_previous_state()
         curr = self._build_snapshot()
+        ts = curr["timestamp"]
 
         events = []
 
-        # STATE: tüm snapshot
+        # -----------------------------
+        # 1) NET_SNAPSHOT (STATE)
+        # -----------------------------
         events.append({
             "type": "NET_SNAPSHOT",
-            "timestamp": curr["timestamp"],
+            "timestamp": ts,
             "interfaces": curr["interfaces"],
-            "connections": curr["connections"],
+            "connections": curr["connections"]
         })
 
-        # STATE: interface I/O per interface
+        # -----------------------------
+        # 2) NET_INTERFACE_STATS (STATE)
+        # -----------------------------
         for iface, stats in curr["interfaces"].items():
             events.append({
                 "type": "NET_INTERFACE_STATS",
-                "timestamp": curr["timestamp"],
+                "timestamp": ts,
                 "iface": iface,
                 **stats
             })
 
-        # EVENT: diff
-        events.extend(
-            self._diff_connection_events(
-                prev.get("connections", []),
-                curr.get("connections", []),
-                curr["timestamp"]
-            )
-        )
+        # -----------------------------
+        # 3) DIFF → NET_NEW_*, NET_CLOSED_*
+        # -----------------------------
+        events.extend(self._diff_connection_events(
+            prev.get("connections", []),
+            curr.get("connections", []),
+            ts
+        ))
 
+        # Snapshot kaydet
         self._save_state(curr)
+
         return events
 
-    # ==============================
-    # SNAPSHOT TOPLAYICILAR
-    # ==============================
+    # ============================================================
+    # SNAPSHOT TOPLAYICI
+    # ============================================================
     def _build_snapshot(self):
         return {
             "timestamp": time.time(),
             "interfaces": self._collect_interface_io(),
-            "connections": self._collect_connections(),
+            "connections": self._collect_connections()
         }
 
     def _collect_interface_io(self):
@@ -271,13 +282,18 @@ class NetworkCollector:
         out = []
 
         for c in conns:
+            # LADDR
             l_ip = getattr(c.laddr, "ip", None) if c.laddr else None
             l_port = getattr(c.laddr, "port", None) if c.laddr else None
+
+            # RADDR
             r_ip = getattr(c.raddr, "ip", None) if c.raddr else None
             r_port = getattr(c.raddr, "port", None) if c.raddr else None
 
+            # Protocol
             proto = "tcp" if c.type == socket.SOCK_STREAM else "udp"
 
+            # Process name
             try:
                 pname = psutil.Process(c.pid).name() if c.pid else None
             except Exception:
@@ -292,14 +308,14 @@ class NetworkCollector:
                 "raddr_ip": r_ip,
                 "raddr_port": r_port,
                 "status": c.status,
-                "is_listen": (c.status == psutil.CONN_LISTEN),
+                "is_listen": (c.status == psutil.CONN_LISTEN)
             })
 
         return out
 
-    # ==============================
-    # DIFF → NET_* EVENT ÜRETİCİ
-    # ==============================
+    # ============================================================
+    # DIFF → 4 adet EVENT üretir
+    # ============================================================
     def _diff_connection_events(self, prev, curr, ts):
         events = []
 
@@ -320,11 +336,12 @@ class NetworkCollector:
         prev_keys = set(prev_map.keys())
         curr_keys = set(curr_map.keys())
 
-        # Yeni gelen connections
+        # ---------------- NEW -----------------
         for k in curr_keys - prev_keys:
             c = curr_map[k]
 
             if c["is_listen"]:
+                # ✔ NET_NEW_LISTEN_PORT
                 events.append({
                     "type": "NET_NEW_LISTEN_PORT",
                     "timestamp": ts,
@@ -335,17 +352,19 @@ class NetworkCollector:
                     "protocol": c["protocol"],
                 })
             elif c["raddr_ip"]:
+                # ✔ NET_NEW_CONNECTION
                 events.append({
                     "type": "NET_NEW_CONNECTION",
                     "timestamp": ts,
                     **c
                 })
 
-        # Kapanan connections
+        # ---------------- CLOSED -----------------
         for k in prev_keys - curr_keys:
             c = prev_map[k]
 
             if c["is_listen"]:
+                # ✔ NET_CLOSED_LISTEN_PORT
                 events.append({
                     "type": "NET_CLOSED_LISTEN_PORT",
                     "timestamp": ts,
@@ -356,6 +375,7 @@ class NetworkCollector:
                     "protocol": c["protocol"],
                 })
             elif c["raddr_ip"]:
+                # ✔ NET_CLOSED_CONNECTION
                 events.append({
                     "type": "NET_CLOSED_CONNECTION",
                     "timestamp": ts,
@@ -364,9 +384,9 @@ class NetworkCollector:
 
         return events
 
-    # ==============================
+    # ============================================================
     # STATE CACHE
-    # ==============================
+    # ============================================================
     def _load_previous_state(self):
         if not os.path.exists(self.state_file):
             return {"connections": []}
@@ -384,11 +404,3 @@ class NetworkCollector:
                 json.dump(snap, f)
         except:
             pass
-
-
-# Test
-if __name__ == "__main__":
-    nc = NetworkCollector()
-    ev = nc.step()
-    for e in ev:
-        print(e)
