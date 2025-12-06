@@ -11,8 +11,7 @@ from backend.core.parser.LogDispatcher import LogDispatcher
 
 from backend.logger import logger
 
-
-# Global instance — API'ler buradan çağıracak
+# Global instance for API
 scheduler_instance = None
 scheduler_lock = threading.Lock()
 
@@ -47,19 +46,18 @@ class Scheduler:
         self.event_dispatcher = EventDispatcher()
         self.log_dispatcher = LogDispatcher()
 
-        self.heartbeat = {} 
-        
-        # Threads
+        self.heartbeat = {}
         self.threads = []
 
         logger.info("[Scheduler] Initialized")
-    
-    
+
+    # ---------------------------------------------------------
+    # HEALTH LOOP
+    # ---------------------------------------------------------
     def _run_health_loop(self):
         while True:
             self.heartbeat["MainThread"] = time.time()
             time.sleep(2)
-
 
     # ---------------------------------------------------------
     # METRICS LOOP
@@ -70,8 +68,7 @@ class Scheduler:
 
         while True:
             self.heartbeat["MetricsThread"] = time.time()
-            
-            
+
             try:
                 event = self.metrics_collector.snapshot()
                 self.event_dispatcher.dispatch(event)
@@ -82,15 +79,14 @@ class Scheduler:
             time.sleep(interval)
 
     # ---------------------------------------------------------
-    # GENERIC COLLECTOR LOOP (Process / Network)
+    # GENERIC LOOP (Process / Network)
     # ---------------------------------------------------------
     def _run_collector_loop(self, collector, interval, name):
         logger.info(f"[Scheduler] {name} started ({interval}s interval)")
 
         while True:
             self.heartbeat[name] = time.time()
-            
-            
+
             try:
                 events = collector.step()
 
@@ -103,14 +99,14 @@ class Scheduler:
             time.sleep(interval)
 
     # ---------------------------------------------------------
-    # LOG COLLECTOR LOOP  (Raw → Parsed → EventDispatcher)
+    # LOG LOOP
     # ---------------------------------------------------------
     def _run_log_collector(self):
         logger.info("[Scheduler] LogCollector started")
 
         while True:
             self.heartbeat["LogThread"] = time.time()
-            
+
             try:
                 raw_entries = self.log_collector.collect()
 
@@ -121,10 +117,11 @@ class Scheduler:
                     # STEP 1 → RAW → PARSER
                     parsed_event = self.log_dispatcher.dispatch(source, line)
 
+                    # Eğer parser.match() → FALSE ise skip
                     if not parsed_event:
-                        continue  # parser.match() fail → skip
+                        continue  # ↩️ burada SKIP ŞART
 
-                    # STEP 2 → Parsed structured event → EventDispatcher
+                    # STEP 2 → structured event → EventDispatcher
                     self.event_dispatcher.dispatch(parsed_event)
 
             except Exception:
@@ -132,28 +129,32 @@ class Scheduler:
 
             time.sleep(self.LOG_INTERVAL)
 
+
     # ---------------------------------------------------------
-    # START ALL THREADS
+    # START THREADS
     # ---------------------------------------------------------
     def start(self):
         logger.info("[Scheduler] Starting all collectors...")
-        
+
         self.threads = [
             threading.Thread(target=self._run_metrics_loop, name="MetricsThread", daemon=False),
 
-            # Enable when needed:
-            # threading.Thread(target=self._run_collector_loop,
-            #                  args=(self.process_collector, self.PROCESS_INTERVAL, "ProcessCollector"),
-            #                  name="ProcessThread",
-            #                  daemon=False),
+            threading.Thread(
+                target=self._run_collector_loop,
+                args=(self.process_collector, self.PROCESS_INTERVAL, "ProcessCollector"),
+                name="ProcessThread",
+                daemon=False
+            ),
 
-            # threading.Thread(target=self._run_collector_loop,
-            #                  args=(self.network_collector, self.NETWORK_INTERVAL, "NetworkCollector"),
-            #                  name="NetworkThread",
-            #                  daemon=False),
+            # Network loop ileride aktif olur
+            # threading.Thread(
+            #     target=self._run_collector_loop,
+            #     args=(self.network_collector, self.NETWORK_INTERVAL, "NetworkCollector"),
+            #     name="NetworkThread",
+            #     daemon=False
+            # ),
 
             threading.Thread(target=self._run_log_collector, name="LogThread", daemon=False),
-            
             threading.Thread(target=self._run_health_loop, name="HealthThread", daemon=False),
         ]
 
@@ -163,7 +164,6 @@ class Scheduler:
 
         logger.info("[Scheduler] All collectors running.")
 
-        # Global instance
         global scheduler_instance
         with scheduler_lock:
             scheduler_instance = self
@@ -173,5 +173,6 @@ class Scheduler:
 if __name__ == "__main__":
     s = Scheduler()
     s.start()
+
     while True:
         time.sleep(1)

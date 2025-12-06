@@ -23,10 +23,10 @@ class EventDispatcher:
 
         logger.debug(f"[DISPATCH] Received event type={etype}")
 
-        # # PROCESS EVENTS
-        # if etype.startswith("PROCESS_"):
-        #     logger.debug(f"[DISPATCH] → Routing PROCESS event {etype}")
-        #     return self._handle_process(event)
+        # PROCESS EVENTS
+        if etype.startswith("PROCESS_"):
+            logger.debug(f"[DISPATCH] → Routing PROCESS event {etype}")
+            return self._handle_process(event)
 
         # # NETWORK EVENTS
         # if etype.startswith("NET_") or etype.startswith("CONNECTION_"):
@@ -50,15 +50,15 @@ class EventDispatcher:
     # -------------------------
     # HANDLERS
     # -------------------------
-    # def _handle_process(self, event):
-    #     logger.debug("[DISPATCH][PROCESS] Saving process event")
-    #     try:
-    #         result = ProcessEventModel.create(event)
-    #         logger.debug("[DISPATCH][PROCESS] Saved successfully")
-    #         return result
-    #     except Exception as e:
-    #         logger.error(f"[DISPATCH][PROCESS] Failed: {e}")
-    #         return None
+    def _handle_process(self, event):
+        logger.debug("[DISPATCH][PROCESS] Saving process event")
+        try:
+            result = ProcessEventModel.create(event)
+            logger.debug("[DISPATCH][PROCESS] Saved successfully")
+            return result
+        except Exception as e:
+            logger.error(f"[DISPATCH][PROCESS] Failed: {e}")
+            return None
 
 
     # def _handle_network(self, event):
