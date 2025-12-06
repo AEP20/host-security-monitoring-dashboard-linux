@@ -21,8 +21,14 @@ chmod +x scripts/venv-deactivate.sh
 /opt/HIDS/                  -> Proje kodları (deploy ile değişebilir)
 /var/lib/hids/hids.db       -> Kalıcı veritabanı
 /var/lib/hids/log_offsets.json -> Log offsetleri (kalıcı)
-/var/log/hids/              -> HIDS çalışma logları
 /etc/hids/config.json       -> Ayarlar
 /etc/systemd/system/hids.service -> HIDS servisinin başlatma/durdurma/auto-restart yapılandırması, /opt/HIDS/backend/app.py üzerinden başlatır.
 /usr/local/bin/hids-deploy -> GitHub’dan projeyi otomatik indirir/sync eder, /opt/HIDS'deki geçici veriler kaybedilir
 source /opt/HIDS/venv/bin/activate -> activate venv
+/etc/systemd/system/hids.service -> HIDS servisi
+    sudo systemctl daemon-reload
+    sudo systemctl restart hids.service
+    sudo systemctl status hids.service
+    sudo systemctl enable hids.service
+    sudo systemctl stop hids.service
+/var/log/hids/app.log      -> HIDS uygulama logları -> head -n 150 /var/log/hids/app.log
