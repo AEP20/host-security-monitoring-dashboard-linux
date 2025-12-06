@@ -9,6 +9,7 @@ def success(data=None, message="OK", status_code=200):
     """
     response = {
         "status": "success",
+        "success": True,
         "message": message,
         "data": data
     }
