@@ -17,25 +17,25 @@ class EventDispatcher:
 
         print(f"[DEBUG][DISPATCH] Received event type={etype}")
 
-        # PROCESS EVENTS
-        if etype.startswith("PROCESS_"):
-            print(f"[DEBUG][DISPATCH] → Routing PROCESS event {etype}")
-            return self._handle_process(event)
+        # # PROCESS EVENTS
+        # if etype.startswith("PROCESS_"):
+        #     print(f"[DEBUG][DISPATCH] → Routing PROCESS event {etype}")
+        #     return self._handle_process(event)
 
-        # NETWORK EVENTS
-        if etype.startswith("NET_") or etype.startswith("CONNECTION_"):
-            print(f"[DEBUG][DISPATCH] → Routing NETWORK event {etype}")
-            return self._handle_network(event)
+        # # NETWORK EVENTS
+        # if etype.startswith("NET_") or etype.startswith("CONNECTION_"):
+        #     print(f"[DEBUG][DISPATCH] → Routing NETWORK event {etype}")
+        #     return self._handle_network(event)
 
         # METRICS
         if etype == "METRIC_SNAPSHOT":
             print("[DEBUG][DISPATCH] → Routing METRIC_SNAPSHOT")
             return self._handle_metric(event)
 
-        # ALERTS
-        if etype.startswith("ALERT_"):
-            print(f"[DEBUG][DISPATCH] → Routing ALERT event {etype}")
-            return self._handle_alert(event)
+        # # ALERTS
+        # if etype.startswith("ALERT_"):
+        #     print(f"[DEBUG][DISPATCH] → Routing ALERT event {etype}")
+        #     return self._handle_alert(event)
 
         # UNKNOWN EVENT
         print(f"[WARN][DISPATCH] Unknown event type received: {etype}")
