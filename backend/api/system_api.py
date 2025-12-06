@@ -68,6 +68,9 @@ def system_status():
 #             THREAD HEALTH
 # -------------------------------------------
 
+from threading import enumerate as list_threads
+last_heartbeats = {}
+
 @system_api.get("/threads")
 def get_thread_health():
     print("[DEBUG][threads] Called /api/threads")
