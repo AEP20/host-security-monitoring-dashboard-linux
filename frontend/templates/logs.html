@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HIDS • Logs</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <style>
+        .log-container {
+            background: #111;
+            color: #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            height: 350px;
+            overflow-y: scroll;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+
+        .event-table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        .event-table th, .event-table td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #333;
+        }
+
+        .log-info { color: #4fc3f7; }
+        .log-warn { color: #ffeb3b; }
+        .log-error { color: #ff5252; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <h1>System Logs</h1>
+
+    <!-- INTERNAL LOG VIEWER -->
+    <h2>Internal Application Logs</h2>
+    <div id="internal-log-box" class="log-container">Loading...</div>
+
+    <!-- PARSED EVENTS -->
+    <h2>Parsed Event Logs</h2>
+
+    <table class="event-table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Type</th>
+                <th>Severity</th>
+                <th>Message</th>
+            </tr>
+        </thead>
+        <tbody id="event-table-body">
+        </tbody>
+    </table>
+
+</div>
+
+
+<script>
+    // ================================
+    // FETCH INTERNAL LOGS
+    // ================================
+    async function fetchInternalLogs() {
+        try {
+            const res = await fetch("/api/logs/internal");
+            const data = await res.json();
+
+            const logBox = document.getElementById("internal-log-box");
+            let content = data.data || "";
+
+            // basic coloring
+            content = content
+                .replace(/\bINFO\b/g, '<span class="log-info">INFO</span>')
+                .replace(/\bWARNING\b/g, '<span class="log-warn">WARNING</span>')
+                .replace(/\bERROR\b/g, '<span class="log-error">ERROR</span>');
+
+            logBox.innerHTML = content;
+            logBox.scrollTop = logBox.scrollHeight;
+
+        } catch (err) {
+            console.error("Internal log error:", err);
+        }
+    }
+
+    // ================================
+    // FETCH PARSED EVENTS
+    // ================================
+    async function fetchEventLogs() {
+        try {
+            const res = await fetch("/api/logs/events?limit=50");
+            const json = await res.json();
+
+            const rows = json.data || [];
+            const tbody = document.getElementById("event-table-body");
+            tbody.innerHTML = "";
+
+            rows.forEach(ev => {
+                const tr = document.createElement("tr");
+
+                tr.innerHTML = `
+                    <td>${ev.timestamp}</td>
+                    <td>${ev.event_type}</td>
+                    <td>${ev.severity}</td>
+                    <td>${ev.message}</td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+
+        } catch (e) {
+            console.error("Parsed event error:", e);
+        }
+    }
+
+    // ================================
+    // AUTO REFRESH
+    // ================================
+    function refreshAll() {
+        fetchInternalLogs();
+        fetchEventLogs();
+    }
+
+    refreshAll();
+    setInterval(refreshAll, 5000);
+</script>
+
+</body>
+</html>
