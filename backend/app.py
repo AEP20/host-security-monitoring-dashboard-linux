@@ -24,7 +24,7 @@ def create_app():
     app.register_blueprint(system_api, url_prefix="/api/system")
     app.register_blueprint(metrics_api, url_prefix="/api/metrics")
     app.register_blueprint(logs_api, url_prefix="/api/logs")
-    app.register_blueprint(processes_api, url_prefix="/api/processes")
+    app.register_blueprint(processes_api, url_prefix="/api/process")
 
     logger.debug("[APP] Blueprints registered")
 
