@@ -47,6 +47,8 @@ class Scheduler:
         self.event_dispatcher = EventDispatcher()
         self.log_dispatcher = LogDispatcher()
 
+        self.heartbeat = {} 
+        
         # Threads
         self.threads = []
 
@@ -61,6 +63,7 @@ class Scheduler:
 
         while True:
             self.heartbeat["MetricsThread"] = time.time()
+            
             
             try:
                 event = self.metrics_collector.snapshot()
@@ -78,7 +81,7 @@ class Scheduler:
         logger.info(f"[Scheduler] {name} started ({interval}s interval)")
 
         while True:
-            self.heartbeat["LogThread"] = time.time()
+            self.heartbeat[name] = time.time()
             
             
             try:
