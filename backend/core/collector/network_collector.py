@@ -191,21 +191,25 @@ import os
 import time
 import socket
 import psutil
+from backend.logger import logger
 
 
 class NetworkCollector:
 
     def __init__(self, state_file="/var/lib/hids/network_state.json"):
         self.state_file = state_file
+        logger.info(f"[NetworkCollector] Initialized with state file: {state_file}")
 
     def step(self):
+        logger.debug("[NetworkCollector] step() invoked — loading previous state")
         prev = self._load_previous_state()
+
         curr = self._build_snapshot()
         ts = curr["timestamp"]
 
         events = []
 
-        # State snapshot (interfaces + connections)
+        logger.debug("[NetworkCollector] Building NET_SNAPSHOT event")
         events.append({
             "type": "NET_SNAPSHOT",
             "timestamp": ts,
@@ -213,7 +217,6 @@ class NetworkCollector:
             "connections": curr["connections"]
         })
 
-        # Per-interface stats
         for iface, stats in curr["interfaces"].items():
             events.append({
                 "type": "NET_INTERFACE_STATS",
@@ -222,12 +225,15 @@ class NetworkCollector:
                 **stats
             })
 
-        # DIFF events
-        events.extend(self._diff_connection_events(
+        logger.debug("[NetworkCollector] Performing diff for connection events")
+        diff_events = self._diff_connection_events(
             prev.get("connections", []),
             curr.get("connections", []),
             ts
-        ))
+        )
+        events.extend(diff_events)
+
+        logger.info(f"[NetworkCollector] step() produced {len(events)} events ({len(diff_events)} diff-events)")
 
         self._save_state(curr)
         return events
@@ -236,13 +242,17 @@ class NetworkCollector:
     # SNAPSHOT BUILD
     # ============================================================
     def _build_snapshot(self):
+        ts = time.time()
+        logger.debug("[NetworkCollector] Collecting snapshot: interfaces + connections")
+
         return {
-            "timestamp": time.time(),
+            "timestamp": ts,
             "interfaces": self._collect_interface_io(),
             "connections": self._collect_connections()
         }
 
     def _collect_interface_io(self):
+        logger.debug("[NetworkCollector] Collecting per-interface IO stats")
         counters = psutil.net_io_counters(pernic=True)
         out = {}
 
@@ -257,9 +267,12 @@ class NetworkCollector:
                 "dropin": c.dropin,
                 "dropout": c.dropout
             }
+
+        logger.debug(f"[NetworkCollector] IO snapshot collected for {len(out)} interfaces")
         return out
 
     def _collect_connections(self):
+        logger.debug("[NetworkCollector] Collecting active inet connections")
         conns = psutil.net_connections(kind="inet")
         out = []
 
@@ -271,13 +284,11 @@ class NetworkCollector:
 
             proto = "tcp" if c.type == socket.SOCK_STREAM else "udp"
 
-            # process name safety
             try:
                 pname = psutil.Process(c.pid).name() if c.pid else "unknown"
             except Exception:
                 pname = "unknown"
 
-            # UDP "listen" fix
             is_listen = (
                 (c.status == psutil.CONN_LISTEN) or
                 (c.type == socket.SOCK_DGRAM and not r_ip)
@@ -295,15 +306,17 @@ class NetworkCollector:
                 "is_listen": is_listen,
             })
 
+        logger.debug(f"[NetworkCollector] Detected {len(out)} inet connections")
         return out
 
     # ============================================================
     # DIFF ENGINE
     # ============================================================
     def _diff_connection_events(self, prev, curr, ts):
+        logger.debug("[NetworkCollector] Starting diff-engine")
+
         events = []
 
-        # improved key (no status)
         def key(c):
             return (
                 c.get("pid"),
@@ -320,7 +333,6 @@ class NetworkCollector:
         prev_keys = set(prev_map.keys())
         curr_keys = set(curr_map.keys())
 
-        # NEW CONNECTIONS
         for k in curr_keys - prev_keys:
             c = curr_map[k]
 
@@ -330,6 +342,7 @@ class NetworkCollector:
                     "timestamp": ts,
                     **c
                 })
+                logger.info(f"[NetworkCollector] New LISTEN port opened: {c.get('laddr_port')}")
             elif c["raddr_ip"]:
                 events.append({
                     "type": "NET_NEW_CONNECTION",
@@ -337,7 +350,6 @@ class NetworkCollector:
                     **c
                 })
 
-        # CLOSED CONNECTIONS
         for k in prev_keys - curr_keys:
             c = prev_map[k]
 
@@ -347,6 +359,7 @@ class NetworkCollector:
                     "timestamp": ts,
                     **c
                 })
+                logger.info(f"[NetworkCollector] LISTEN port closed: {c.get('laddr_port')}")
             elif c["raddr_ip"]:
                 events.append({
                     "type": "NET_CLOSED_CONNECTION",
@@ -354,6 +367,7 @@ class NetworkCollector:
                     **c
                 })
 
+        logger.debug(f"[NetworkCollector] Diff-engine produced {len(events)} events")
         return events
 
     # ============================================================
@@ -361,19 +375,25 @@ class NetworkCollector:
     # ============================================================
     def _load_previous_state(self):
         if not os.path.exists(self.state_file):
+            logger.warning("[NetworkCollector] No state file found; starting fresh")
             return {"connections": []}
         try:
             with open(self.state_file, "r") as f:
-                return json.load(f)
-        except:
+                state = json.load(f)
+                logger.debug("[NetworkCollector] Loaded previous state")
+                return state
+        except Exception as e:
+            logger.error(f"[NetworkCollector] Failed to load previous state: {e}")
             return {"connections": []}
 
     def _save_state(self, snap):
-        os.makedirs(os.path.dirname(self.state_file), exist_ok=True)
         try:
+            os.makedirs(os.path.dirname(self.state_file), exist_ok=True)
             with open(self.state_file, "w") as f:
                 json.dump(snap, f)
-        except:
+            logger.debug("[NetworkCollector] State saved")
+        except Exception as e:
+            logger.error(f"[NetworkCollector] Failed to save state: {e}")
             pass
 
 

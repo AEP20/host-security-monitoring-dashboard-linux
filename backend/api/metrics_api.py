@@ -4,6 +4,7 @@ from flask import Blueprint, request
 from backend.api.utils.response_wrapper import success, error
 from backend.database import SessionLocal
 from backend.models.metric_model import MetricModel
+from backend.logger import logger
 
 
 metrics_api = Blueprint("metrics_api", __name__)
@@ -16,7 +17,7 @@ metrics_api = Blueprint("metrics_api", __name__)
 
 @metrics_api.get("/latest")
 def get_latest_metrics():
-    print("[DEBUG][metrics/latest] Querying latest metric snapshot")
+    logger.debug("[metrics/latest] Querying latest metric snapshot")
 
     try:
         db = SessionLocal()
@@ -27,7 +28,7 @@ def get_latest_metrics():
         )
         db.close()
 
-        print("[DEBUG][metrics/latest] Found latest:", bool(latest))
+        logger.info(f"[metrics/latest] Latest metric found: {bool(latest)}")
 
         if not latest:
             return success(data=None)
@@ -50,10 +51,12 @@ def get_latest_metrics():
             "timestamp": timestamp,
         }
 
+        logger.debug("[metrics/latest] Metric enrichment completed")
+
         return success(data=enriched)
 
     except Exception as e:
-        print(f"[ERROR][metrics/latest] Exception: {e}")
+        logger.exception(f"[metrics/latest] Exception: {e}")
         return error("Failed to retrieve latest metrics", exception=e, status_code=500)
 
 
@@ -66,7 +69,7 @@ def get_latest_metrics():
 
 @metrics_api.get("/timeline")
 def metrics_timeline():
-    print("[DEBUG][metrics/timeline] Called with limit=", request.args.get("limit"))
+    logger.debug(f"[metrics/timeline] Called with limit={request.args.get('limit')}")
 
     try:
         limit = int(request.args.get("limit", 50))
@@ -80,11 +83,11 @@ def metrics_timeline():
         )
         db.close()
 
-        print(f"[DEBUG][metrics/timeline] Retrieved {len(rows)} rows")
+        logger.info(f"[metrics/timeline] Retrieved {len(rows)} rows")
 
         rows = rows[::-1]
         return success(data=[row.to_dict() for row in rows])
 
     except Exception as e:
-        print(f"[ERROR][metrics/timeline] Exception: {e}")
+        logger.exception(f"[metrics/timeline] Exception: {e}")
         return error("Failed to retrieve metric timeline", exception=e, status_code=500)

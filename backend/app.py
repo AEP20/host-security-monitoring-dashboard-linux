@@ -6,8 +6,12 @@ from backend.api.metrics_api import metrics_api
 from backend.api.logs_api import logs_api
 from backend.core.scheduler.scheduler import Scheduler
 
+from backend.logger import logger
+
 
 def create_app():
+    logger.info("[APP] Initializing Flask application")
+
     app = Flask(
         __name__,
         template_folder="../frontend/templates",
@@ -20,15 +24,20 @@ def create_app():
     app.register_blueprint(metrics_api, url_prefix="/api/metrics")
     app.register_blueprint(logs_api, url_prefix="/api/logs")
 
+    logger.debug("[APP] Blueprints registered")
+
     init_db()
+    logger.info("[APP] Database initialized")
 
     scheduler = Scheduler()
     scheduler.start()
+    logger.info("[APP] Scheduler started")
 
     @app.route("/")
     def index():
         return render_template("dashboard.html")
 
+    logger.info("[APP] Flask application created successfully")
     return app
 
 

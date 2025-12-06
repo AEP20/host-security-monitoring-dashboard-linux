@@ -3,6 +3,7 @@ import psutil
 import time
 
 from backend.api.utils.response_wrapper import success, error
+from backend.logger import logger
 
 system_api = Blueprint("system_api", __name__)
 
@@ -48,20 +49,20 @@ def format_seconds(seconds):
 
 @system_api.get("/status")
 def system_status():
-    print("[DEBUG][system_status] Called /api/status endpoint")
+    logger.info("[system_status] System status endpoint called")
 
     try:
         cpu_percent = psutil.cpu_percent(interval=0.15)
         mem = psutil.virtual_memory()
 
-        print(f"[DEBUG][system_status] CPU={cpu_percent}%, MEM={mem.percent}%")
+        logger.debug(f"[system_status] CPU={cpu_percent}%, MEM={mem.percent}%")
 
         sys_up = get_system_uptime_seconds()
 
         data = {
             "hids_uptime_seconds": get_hids_uptime_seconds(),
             "system_uptime_seconds": sys_up,
-            "system_uptime_human": format_seconds(sys_up),   
+            "system_uptime_human": format_seconds(sys_up),
 
             "cpu_percent": cpu_percent,
             "memory_percent": mem.percent,
@@ -72,11 +73,11 @@ def system_status():
             "scheduler_threads": get_thread_states(),
         }
 
-        print("[DEBUG][system_status] Returning success")
+        logger.info("[system_status] Returning system status successfully")
         return success(data=data)
 
     except Exception as e:
-        print(f"[ERROR][system_status] Exception: {e}")
+        logger.exception(f"[system_status] Exception occurred: {e}")
         return error("Failed to retrieve system status", exception=e)
 
 
@@ -89,7 +90,7 @@ last_heartbeats = {}
 
 @system_api.get("/threads")
 def get_thread_health():
-    print("[DEBUG][threads] Called /api/threads")
+    logger.info("[threads] Thread health endpoint called")
 
     threads = []
     now = time.time()
@@ -97,7 +98,7 @@ def get_thread_health():
     for t in list_threads():
         hb = last_heartbeats.get(t.name)
 
-        print(f"[DEBUG][threads] {t.name}: alive={t.is_alive()}, hb={hb}")
+        logger.debug(f"[threads] Thread={t.name}, alive={t.is_alive()}, heartbeat={hb}")
 
         hb_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(hb)) if hb else "N/A"
 
@@ -107,5 +108,5 @@ def get_thread_health():
             "last_heartbeat": hb_str,
         })
 
-    print(f"[DEBUG][threads] Returning {len(threads)} threads")
+    logger.info(f"[threads] Returning {len(threads)} thread health entries")
     return success(data=threads)

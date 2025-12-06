@@ -84,6 +84,7 @@
 
 import os
 from backend.core.collector.offsets_manager import OffsetManager
+from backend.logger import logger
 
 
 class LogsCollector:
@@ -92,46 +93,59 @@ class LogsCollector:
         "syslog": "/var/log/syslog",
         "kernel": "/var/log/kern.log",
         "dpkg": "/var/log/dpkg.log",
-        "ufw": "/var/log/ufw.log",    
+        "ufw": "/var/log/ufw.log",
     }
 
     def __init__(self, state_file="/var/lib/hids/log_offsets.json"):
         self.offset_manager = OffsetManager(state_file)
+        logger.info(f"[LogsCollector] Initialized with state file: {state_file}")
 
     # Public API
     def collect(self):
+        logger.debug("[LogsCollector] collect() invoked")
         results = []
 
         for source, path in self.LOG_FILES.items():
             lines = self._read_file(source, path)
-            for line in lines:
-                results.append({"source": source, "line": line})
+            if lines:
+                logger.info(f"[LogsCollector] {source}: collected {len(lines)} new lines")
+            results.extend({"source": source, "line": line} for line in lines)
 
         self.offset_manager.save()
+        logger.debug("[LogsCollector] Offsets saved after collection")
 
         return results
 
     # Internal helpers
     def _read_file(self, source, filepath):
         if not os.path.exists(filepath):
-            return []  
+            logger.warning(f"[LogsCollector] Log file not found: {filepath}")
+            return []
 
         last_offset = self.offset_manager.get(source)
-
         file_size = os.path.getsize(filepath)
 
         if last_offset > file_size:
-            last_offset = 0  
+            logger.warning(f"[LogsCollector] Offset reset for {source} (file truncated or rotated)")
+            last_offset = 0
             self.offset_manager.set(source, 0)
 
         new_lines = []
 
-        with open(filepath, "r", errors="ignore") as f:
-            f.seek(last_offset)
-            for line in f:
-                new_lines.append(line.rstrip("\n"))
+        try:
+            with open(filepath, "r", errors="ignore") as f:
+                f.seek(last_offset)
+                for line in f:
+                    new_lines.append(line.rstrip("\n"))
 
-            new_offset = f.tell()
-            self.offset_manager.set(source, new_offset)
+                new_offset = f.tell()
+                self.offset_manager.set(source, new_offset)
+
+        except Exception as e:
+            logger.error(f"[LogsCollector] Failed reading {source}: {e}")
+            return []
+
+        if new_lines:
+            logger.debug(f"[LogsCollector] {source}: read {len(new_lines)} new lines")
 
         return new_lines

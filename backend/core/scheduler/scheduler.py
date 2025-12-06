@@ -9,9 +9,12 @@ from backend.core.collector.logs_collector import LogsCollector
 # from backend.core.rules.rule_engine import RuleEngine
 from backend.core.event_dispatcher.event_dispatcher import EventDispatcher
 
+from backend.logger import logger
+
 
 # Global instance — API’ler buradan erişecek
 scheduler_instance = None
+scheduler_lock = threading.Lock()
 
 
 class Scheduler:
@@ -42,12 +45,14 @@ class Scheduler:
         # Thread list
         self.threads = []
 
+        logger.info("[Scheduler] Initialized")
+
     # ---------------------------------------------------------
     # METRICS loop
     # ---------------------------------------------------------
     def _run_metrics_loop(self):
         interval = self.METRICS_INTERVAL
-        print(f"[Scheduler] MetricsCollector started ({interval}s interval)")
+        logger.info(f"[Scheduler] MetricsCollector started ({interval}s interval)")
 
         while True:
             try:
@@ -60,7 +65,7 @@ class Scheduler:
                 #     self.dispatcher.dispatch(alert)
 
             except Exception as e:
-                print("[Scheduler] MetricsCollector error:", e)
+                logger.exception("[Scheduler] MetricsCollector error")
 
             time.sleep(interval)
 
@@ -68,7 +73,7 @@ class Scheduler:
     # Generic collector runner
     # ---------------------------------------------------------
     def _run_collector_loop(self, collector, interval, name):
-        print(f"[Scheduler] {name} started ({interval}s interval)")
+        logger.info(f"[Scheduler] {name} started ({interval}s interval)")
 
         while True:
             try:
@@ -81,8 +86,8 @@ class Scheduler:
                     # if alert:
                     #     self.dispatcher.dispatch(alert)
 
-            except Exception as e:
-                print(f"[Scheduler] {name} error:", e)
+            except Exception:
+                logger.exception(f"[Scheduler] {name} error")
 
             time.sleep(interval)
 
@@ -90,25 +95,27 @@ class Scheduler:
     # LOG tailing loop
     # ---------------------------------------------------------
     def _run_log_collector(self):
-        print("[Scheduler] LogCollector started (tail mode)")
+        logger.info("[Scheduler] LogCollector started (tail mode)")
 
-        for event in self.log_collector.run():
+        # LogCollector'ın 'run()' fonksiyonu yoktu; bu yüzden step çağırıyoruz.
+        while True:
             try:
-                # alert = self.rule_engine.process(event)
-                self.dispatcher.dispatch(event)
+                events = self.log_collector.collect()
 
-                # if alert:
-                #     self.dispatcher.dispatch(alert)
+                for ev in events:
+                    self.dispatcher.dispatch(ev)
 
-            except Exception as e:
-                print("[Scheduler] LogCollector error:", e)
+            except Exception:
+                logger.exception("[Scheduler] LogCollector error")
+
+            time.sleep(1)
 
     # ---------------------------------------------------------
     # CONFIG CHECKER loop
     # ---------------------------------------------------------
     def _run_config_checker(self):
         interval = self.CONFIG_CHECKER_INTERVAL
-        print(f"[Scheduler] ConfigChecker started (interval={interval}s)")
+        logger.info(f"[Scheduler] ConfigChecker started (interval={interval}s)")
 
         from backend.core.config_checker.firewall_check import FirewallCheck
         checker = FirewallCheck()
@@ -120,8 +127,8 @@ class Scheduler:
                 for f in findings:
                     self.dispatcher.dispatch(f)
 
-            except Exception as e:
-                print("[Scheduler] ConfigChecker error:", e)
+            except Exception:
+                logger.exception("[Scheduler] ConfigChecker error")
 
             time.sleep(interval)
 
@@ -129,33 +136,39 @@ class Scheduler:
     # Start all threads
     # ---------------------------------------------------------
     def start(self):
-        print("[Scheduler] Starting all collectors...")
+        logger.info("[Scheduler] Starting all collectors...")
 
         # THREAD DEFINITIONS
         self.threads = [
-            threading.Thread(target=self._run_metrics_loop, daemon=False),
+            threading.Thread(target=self._run_metrics_loop, name="MetricsThread", daemon=False),
             threading.Thread(target=self._run_collector_loop,
                              args=(self.process_collector, self.PROCESS_INTERVAL, "ProcessCollector"),
+                             name="ProcessThread",
                              daemon=False),
             threading.Thread(target=self._run_collector_loop,
                              args=(self.network_collector, self.NETWORK_INTERVAL, "NetworkCollector"),
+                             name="NetworkThread",
                              daemon=False),
-            threading.Thread(target=self._run_log_collector, daemon=False),
-            threading.Thread(target=self._run_config_checker, daemon=False),
+            threading.Thread(target=self._run_log_collector, name="LogThread", daemon=False),
+            threading.Thread(target=self._run_config_checker, name="ConfigCheckerThread", daemon=False),
         ]
 
         # START THREADS
         for t in self.threads:
             t.start()
+            logger.info(f"[Scheduler] Started thread: {t.name}")
 
-        print("[Scheduler] All collectors running.")
+        logger.info("[Scheduler] All collectors running.")
 
+        # Thread-safe global assignment
         global scheduler_instance
-        scheduler_instance = self
+        with scheduler_lock:
+            scheduler_instance = self
 
 
 # Standalone run
 if __name__ == "__main__":
-    Scheduler().start()
+    s = Scheduler()
+    s.start()
     while True:
         time.sleep(1)

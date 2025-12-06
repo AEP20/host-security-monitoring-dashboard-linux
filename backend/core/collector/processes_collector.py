@@ -114,6 +114,7 @@ import time
 import hashlib
 from datetime import datetime
 from typing import Dict, Any, List, Optional
+from backend.logger import logger
 
 CACHE_PATH = "/var/lib/hids-cache/process_prev.json"
 
@@ -133,46 +134,48 @@ class ProcessCollector:
         include_hash: bool = False,
         include_details: bool = False,
     ) -> None:
-        """
-        :param cache_path: previous snapshot'ın saklanacağı JSON dosyası
-        :param include_hash: exe path için SHA256 hash hesaplasın mı?
-        :param include_details: cwd, open_files gibi extra detaylar
-        """
         self.cache_path = cache_path
         self.include_hash = include_hash
         self.include_details = include_details
 
-        # exe_path -> sha256 cache
         self._hash_cache: Dict[str, Optional[str]] = {}
-
-        # PID -> process snapshot
         self.previous: Dict[str, Dict[str, Any]] = self.load_previous()
+
+        logger.info(
+            f"[ProcessCollector] Initialized (hash={include_hash}, details={include_details}) "
+            f"cache={cache_path}"
+        )
 
     # ---------------------------------------------------
     # 1) PREVIOUS SNAPSHOT YÜKLE
     # ---------------------------------------------------
     def load_previous(self) -> Dict[str, Dict[str, Any]]:
         if not os.path.exists(self.cache_path):
+            logger.warning("[ProcessCollector] No previous snapshot found")
             return {}
 
         try:
             with open(self.cache_path, "r") as f:
                 data = json.load(f)
-
                 if isinstance(data, dict):
+                    logger.debug("[ProcessCollector] Loaded previous snapshot")
                     return data
                 return {}
-        except Exception:
+        except Exception as e:
+            logger.error(f"[ProcessCollector] Failed loading previous snapshot: {e}")
             return {}
 
     # ---------------------------------------------------
     # 2) CACHE’E YAZ
     # ---------------------------------------------------
     def save_previous(self, snapshot: Dict[str, Dict[str, Any]]) -> None:
-
-        os.makedirs(os.path.dirname(self.cache_path), exist_ok=True)
-        with open(self.cache_path, "w") as f:
-            json.dump(snapshot, f)
+        try:
+            os.makedirs(os.path.dirname(self.cache_path), exist_ok=True)
+            with open(self.cache_path, "w") as f:
+                json.dump(snapshot, f)
+            logger.debug("[ProcessCollector] Snapshot saved to cache")
+        except Exception as e:
+            logger.error(f"[ProcessCollector] Failed saving snapshot: {e}")
 
     # ---------------------------------------------------
     # 3) EXE HASH YARDIMCI FONKSİYONU
@@ -180,8 +183,6 @@ class ProcessCollector:
     def _hash_executable(self, path: Optional[str]) -> Optional[str]:
         if not path:
             return None
-
-        # cache
         if path in self._hash_cache:
             return self._hash_cache[path]
 
@@ -189,20 +190,18 @@ class ProcessCollector:
             with open(path, "rb") as f:
                 digest = hashlib.sha256(f.read()).hexdigest()
                 self._hash_cache[path] = digest
+                logger.debug(f"[ProcessCollector] Computed exe hash for {path}")
                 return digest
         except Exception:
-            # erişilemiyorsa None
             self._hash_cache[path] = None
+            logger.warning(f"[ProcessCollector] Unable to hash executable: {path}")
             return None
 
     # ---------------------------------------------------
     # 4) CURRENT SNAPSHOT TOPLA
     # ---------------------------------------------------
     def collect_snapshot(self) -> Dict[str, Dict[str, Any]]:
-        """
-        Sistemdeki tüm process'lerin anlık durumunu toplar.
-        PID key'leri string olarak tutulur (JSON için uygun).
-        """
+        logger.debug("[ProcessCollector] Collecting process snapshot")
         snapshot: Dict[str, Dict[str, Any]] = {}
         now = time.time()
 
@@ -219,69 +218,51 @@ class ProcessCollector:
             ]
         ):
             try:
-                info = p.info 
-
+                info = p.info
                 pid = info.get("pid")
                 if pid is None:
                     continue
 
                 pid_str = str(pid)
-
-                # CPU yüzde (önceki ölçümlerle delta alır; ilk seferde 0 olabilir)
                 cpu_percent = p.cpu_percent(interval=None)
 
-                # memory info
                 try:
                     mem = p.memory_info()
                     rss = mem.rss
                     vms = mem.vms
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
-                    rss = None
-                    vms = None
+                    rss = vms = None
 
                 exe = info.get("exe")
-                cmdline = info.get("cmdline")
-                username = info.get("username")
-                status = info.get("status")
-                create_time = info.get("create_time")
-                ppid = info.get("ppid")
-                name = info.get("name")
-
-                # Deleted binary tespiti
                 exe_deleted = False
-                if exe:
-                    # Bazı sistemlerde "(deleted)" suffix'i kullanılıyor
-                    if "(deleted)" in exe or not os.path.exists(exe):
-                        exe_deleted = True
+                if exe and ("(deleted)" in exe or not os.path.exists(exe)):
+                    exe_deleted = True
 
-                # optional
                 cwd = None
                 open_files = None
                 if self.include_details:
                     try:
                         cwd = p.cwd()
-                    except (psutil.NoSuchProcess, psutil.AccessDenied):
-                        cwd = None
+                    except Exception:
+                        pass
                     try:
-                        of = p.open_files()
-                        open_files = [f.path for f in of]
-                    except (psutil.NoSuchProcess, psutil.AccessDenied):
-                        open_files = None
+                        open_files = [f.path for f in p.open_files()]
+                    except Exception:
+                        pass
 
-                # optional
                 exe_hash = None
                 if self.include_hash and exe and not exe_deleted:
                     exe_hash = self._hash_executable(exe)
 
                 snapshot[pid_str] = {
                     "pid": pid,
-                    "ppid": ppid,
-                    "name": name,
+                    "ppid": info.get("ppid"),
+                    "name": info.get("name"),
                     "exe": exe,
-                    "cmdline": cmdline,
-                    "username": username,
-                    "status": status,
-                    "create_time": create_time,
+                    "cmdline": info.get("cmdline"),
+                    "username": info.get("username"),
+                    "status": info.get("status"),
+                    "create_time": info.get("create_time"),
                     "collected_at": now,
                     "cpu_percent": cpu_percent,
                     "memory_rss": rss,
@@ -294,10 +275,11 @@ class ProcessCollector:
 
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
-            except Exception:
-                # hata olursa da devam
+            except Exception as e:
+                logger.error(f"[ProcessCollector] Unexpected error collecting process: {e}")
                 continue
 
+        logger.info(f"[ProcessCollector] Snapshot collected ({len(snapshot)} processes)")
         return snapshot
 
     # ---------------------------------------------------
@@ -308,40 +290,32 @@ class ProcessCollector:
         previous: Dict[str, Dict[str, Any]],
         current: Dict[str, Dict[str, Any]],
     ) -> List[Dict[str, Any]]:
-        """
-        previous vs current snapshot karşılaştırıp event listesi üretir.
-        """
-        prev_pids = set(previous.keys())
-        curr_pids = set(current.keys())
-
-        new_pids = curr_pids - prev_pids          # NEW_PROCESS
-        terminated_pids = prev_pids - curr_pids   # TERMINATED_PROCESS
-        common_pids = prev_pids & curr_pids       # CHANGES
 
         events: List[Dict[str, Any]] = []
         now_iso = datetime.utcnow().isoformat() + "Z"
 
-        # NEW_PROCESS
-        for pid in new_pids:
-            p_curr = current[pid]
-            events.append(
-                {
-                    "type": "PROCESS_NEW",
-                    "timestamp": now_iso,
-                    **p_curr,
-                }
+        prev_pids = set(previous.keys())
+        curr_pids = set(current.keys())
+
+        new_pids = curr_pids - prev_pids
+        terminated_pids = prev_pids - curr_pids
+        common_pids = prev_pids & curr_pids
+
+        if new_pids or terminated_pids:
+            logger.info(
+                f"[ProcessCollector] Diff detected: new={len(new_pids)}, terminated={len(terminated_pids)}"
             )
 
-        # TERMINATED_PROCESS
+        for pid in new_pids:
+            events.append({"type": "PROCESS_NEW", "timestamp": now_iso, **current[pid]})
+
         for pid in terminated_pids:
-            p_prev = previous[pid]
+            p_prev = previous.get(pid, {})
             create_time = p_prev.get("create_time")
-            run_time = None
-            if create_time is not None:
-                try:
-                    run_time = time.time() - float(create_time)
-                except Exception:
-                    run_time = None
+            try:
+                run_time = time.time() - float(create_time) if create_time else None
+            except Exception:
+                run_time = None
 
             events.append(
                 {
@@ -357,12 +331,10 @@ class ProcessCollector:
                 }
             )
 
-        # CHANGES
         for pid in common_pids:
             p_prev = previous[pid]
             p_curr = current[pid]
 
-            # EXE değişimi
             if p_prev.get("exe") != p_curr.get("exe"):
                 events.append(
                     {
@@ -374,7 +346,6 @@ class ProcessCollector:
                     }
                 )
 
-            # CMDLINE değişimi
             if p_prev.get("cmdline") != p_curr.get("cmdline"):
                 events.append(
                     {
@@ -386,7 +357,6 @@ class ProcessCollector:
                     }
                 )
 
-            # USERNAME değişimi (privilege escalation)
             if p_prev.get("username") != p_curr.get("username"):
                 events.append(
                     {
@@ -398,7 +368,6 @@ class ProcessCollector:
                     }
                 )
 
-            # STATUS değişimi (özellikle ZOMBIE)
             if p_prev.get("status") != p_curr.get("status"):
                 events.append(
                     {
@@ -410,7 +379,6 @@ class ProcessCollector:
                     }
                 )
 
-            # ZOMBIE process 
             if p_curr.get("status") == psutil.STATUS_ZOMBIE:
                 events.append(
                     {
@@ -423,7 +391,6 @@ class ProcessCollector:
                     }
                 )
 
-            # Deleted executable
             if not p_prev.get("exe_deleted") and p_curr.get("exe_deleted"):
                 events.append(
                     {
@@ -435,7 +402,6 @@ class ProcessCollector:
                     }
                 )
 
-            # Binary hash değişimi (opsiyonel, include_hash=True ise)
             if (
                 self.include_hash
                 and p_prev.get("exe_hash") is not None
@@ -453,33 +419,28 @@ class ProcessCollector:
                     }
                 )
 
+        logger.debug(f"[ProcessCollector] Diff produced {len(events)} events")
         return events
 
     # ---------------------------------------------------
-    # 6) TEK ADIM — SCHEDULER İÇİN KULLANILACAK FONKSİYON
+    # 6) TEK ADIM — SCHEDULER İÇİN
     # ---------------------------------------------------
     def step(self) -> List[Dict[str, Any]]:
-        """
-        Tek bir ölçüm + diff + cache güncelleme.
-        Dışarıya sadece event listesi döner.
-        """
+        logger.debug("[ProcessCollector] step() invoked")
         current = self.collect_snapshot()
         events = self.diff_processes(self.previous, current)
 
-        # previous snapshot güncelle
         self.previous = current
         self.save_previous(current)
 
+        logger.info(f"[ProcessCollector] step() returned {len(events)} events")
         return events
 
     # ---------------------------------------------------
-    # 7) ANA ÇALIŞMA LOOP'U (GENERATOR)
+    # 7) ANA LOOP
     # ---------------------------------------------------
     def run(self, interval: int = 10):
-        """
-        Sürekli çalışmak için generator.
-        Scheduler veya main loop buradan event okuyabilir.
-        """
+        logger.info(f"[ProcessCollector] Run loop started interval={interval}s")
         while True:
             events = self.step()
             for event in events:
@@ -487,17 +448,15 @@ class ProcessCollector:
             time.sleep(interval)
 
     # ---------------------------------------------------
-    # 8) TEST FUNKSIYONU — TEK SEFERLİK
+    # 8) TEST
     # ---------------------------------------------------
     def test_once(self) -> None:
-        """
-        ProcessCollector'ı tek seferlik test etmek için.
-        """
-        print("\n===== PROCESS COLLECTOR TEST =====\n")
         events = self.step()
 
+        logger.info(f"[ProcessCollector] Test produced {len(events)} events")
+        print("\n===== PROCESS COLLECTOR TEST =====\n")
         if not events:
-            print("Herhangi bir event yok (normal olabilir).")
+            print("Herhangi bir event yok.")
         else:
             for e in events:
                 print(f"[EVENT] {e['type']}")
@@ -511,7 +470,7 @@ class ProcessCollector:
 if __name__ == "__main__":
     collector = ProcessCollector(
         cache_path=CACHE_PATH,
-        include_hash=False,     # optional, simdilik false
-        include_details=False,  # optional, simdilik false
+        include_hash=False,
+        include_details=False,
     )
     collector.test_once()

@@ -6,6 +6,7 @@ from backend.api.utils.response_wrapper import success, error
 from backend.database import SessionLocal
 from backend.models.log_model import LogEventModel
 import os
+from backend.logger import logger
 
 logs_api = Blueprint("logs_api", __name__)
 
@@ -18,7 +19,7 @@ logs_api = Blueprint("logs_api", __name__)
 
 @logs_api.get("/events")
 def get_log_events():
-    print("[DEBUG][logs/events] Query params:", dict(request.args))
+    logger.debug(f"[logs/events] Query params: {dict(request.args)}")
 
     try:
         db = SessionLocal()
@@ -31,7 +32,7 @@ def get_log_events():
         # filters debug
         for name in ["severity", "source", "category", "event_type", "search"]:
             if request.args.get(name):
-                print(f"[DEBUG][logs/events] Filter: {name}={request.args.get(name)}")
+                logger.debug(f"[logs/events] Applying filter {name}={request.args.get(name)}")
 
         if request.args.get("severity"):
             query = query.filter(LogEventModel.severity == request.args["severity"])
@@ -45,16 +46,17 @@ def get_log_events():
         if request.args.get("search"):
             term = f"%{request.args['search']}%"
             query = query.filter(LogEventModel.message.ilike(term))
-            print(f"[DEBUG][logs/events] Search term: {term}")
+            logger.debug(f"[logs/events] Search term applied: {term}")
 
         rows = query.limit(limit).offset(offset).all()
         db.close()
 
-        print(f"[DEBUG][logs/events] Returned {len(rows)} results")
+        logger.info(f"[logs/events] Returned {len(rows)} events (limit={limit}, offset={offset})")
+
         return success(data=[row.to_dict() for row in rows])
 
     except Exception as e:
-        print(f"[ERROR][logs/events] Exception: {e}")
+        logger.exception(f"[logs/events] Unhandled exception: {e}")
         return error("Failed to retrieve log events", exception=e, status_code=500)
 
 
@@ -67,20 +69,21 @@ def get_log_events():
 @logs_api.get("/internal")
 def get_internal_logs():
     INTERNAL_LOG_PATH = "/var/log/hids/app.log"
-    print(f"[DEBUG][logs/internal] Reading internal logs from {INTERNAL_LOG_PATH}")
+    # print(f"[DEBUG][logs/internal] Reading internal logs from {INTERNAL_LOG_PATH}")
+    logger.debug(f"[logs/internal] Reading internal logs from {INTERNAL_LOG_PATH}")
 
     try:
         if not os.path.exists(INTERNAL_LOG_PATH):
-            print("[DEBUG][logs/internal] Log file not found")
+            logger.warning("[logs/internal] Internal log file not found")
             return success(message="Internal log file not found", data="")
 
         with open(INTERNAL_LOG_PATH, "r") as f:
             content = f.read()
 
-        print("[DEBUG][logs/internal] Returning internal log content")
+        logger.info("[logs/internal] Returning internal log content")
+
         return success(data=content)
 
     except Exception as e:
-        print(f"[ERROR][logs/internal] Exception: {e}")
+        logger.exception(f"[logs/internal] Unhandled exception: {e}")
         return error("Failed to read internal logs", exception=e, status_code=500)
-
