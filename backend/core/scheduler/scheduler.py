@@ -1,151 +1,124 @@
-# ============================================================
-#                          SCHEDULER
-# ============================================================
-
-# Amaç:
-# ------
-# HIDS içindeki collector, parser, rule engine ve dispatcher
-# akışını doğru zamanlarda tetikleyen merkezi zamanlayıcıdır.
-
-# Görevleri:
-# ----------
-# • MetricsCollector → her 60 sn snapshot üretir → dispatcher → DB
-# • ProcessCollector → her 10 sn diff → event → rule engine → dispatcher
-# • NetworkCollector → her 10 sn diff → event → rule engine → dispatcher
-# • LogCollector → sürekli takip → satır → parser → event → rule → dispatcher
-# • ConfigChecker → 30–60 dk aralıklarla → hardening bulgularını üretir
-
-# Mimari:
-# -------
-# Scheduler hiçbir yerde DB işlemi yapmaz.
-# Collector → RuleEngine → Dispatcher zincirini çalıştırır.
-
-# Teknik Detay:
-# -------------
-# Scheduler her collector için ayrı bir thread açar (non-blocking).
-# Her thread kendi loop’u içinde:
-#     1) collector.step() veya collector.snapshot() çağırır
-#     2) çıkan event'leri rule_engine.process(event) ile işler
-#     3) rule engine’den dönen alertleri event dizisine ekler
-#     4) tümünü dispatcher.dispatch(event) ile DB'ye kaydeder
-#     5) interval kadar sleep atar
-
-# Bu yapı gerçek EDR sistemlerinde (Wazuh, OSSEC, Elastic Agent)
-# kullanılan yaklaşımın birebir aynısıdır.
-
-# ============================================================
-
-
 import threading
 import time
 
 from backend.core.collector.metrics_collector import MetricsCollector
 from backend.core.collector.processes_collector import ProcessCollector
 from backend.core.collector.network_collector import NetworkCollector
-# from backend.core.collector.logs_collector import LogCollector  # varsa
+from backend.core.collector.logs_collector import LogCollector
 
 from backend.core.rules.rule_engine import RuleEngine
 from backend.core.event_dispatcher.event_dispatcher import EventDispatcher
 
 
+# Global instance — API’ler buradan erişecek
+scheduler_instance = None
+
+
 class Scheduler:
     """
     ============================================================
-                              SCHEDULER
+                        CENTRAL SCHEDULER
     ============================================================
-
     Collector → RuleEngine → EventDispatcher zincirini
-    belirli aralıklarla tetikleyen merkezi zamanlayıcıdır.
-
-    Her collector kendi thread'i içinde çalışır.
-    Non-blocking tasarım — biri yavaşlasa diğerlerini etkilemez.
+    belirli aralıklarla tetikleyen ana zamanlayıcı.
     """
 
+    METRICS_INTERVAL = 60
+    PROCESS_INTERVAL = 10
+    NETWORK_INTERVAL = 10
+    CONFIG_CHECKER_INTERVAL = 3600
+
     def __init__(self):
-        # Collector'lar
+        # Collector instances
         self.metrics_collector = MetricsCollector()
         self.process_collector = ProcessCollector()
         self.network_collector = NetworkCollector()
-        # self.log_collector = LogCollector()  # tail -f tarzı çalışır
+        self.log_collector = LogCollector()
 
-        # Engine & Dispatcher
+        # Core engines
         self.rule_engine = RuleEngine()
         self.dispatcher = EventDispatcher()
 
+        # Thread list
         self.threads = []
 
     # ---------------------------------------------------------
-    # İç fonksiyon: belirli interval ile bir collector çalıştır
+    # METRICS loop
     # ---------------------------------------------------------
-    def _run_collector_loop(self, collector, interval, collector_name):
-        """
-        Generic collector worker.
-
-        - collector.step() → event listesi döner
-        - her event → rule_engine.process(event)
-        - çıkan alert varsa → ayrı event olarak eklenir
-        - dispatcher.dispatch(event) → DB
-        """
-
-        print(f"[Scheduler] {collector_name} started (interval={interval}s)")
+    def _run_metrics_loop(self):
+        interval = self.METRICS_INTERVAL
+        print(f"[Scheduler] MetricsCollector started ({interval}s interval)")
 
         while True:
             try:
-                # Process & Network collector step() kullanır
-                events = collector.step()
+                metric_event = self.metrics_collector.snapshot()
 
-                for ev in events:
-                    # Rule engine incele
-                    alert = self.rule_engine.process(ev)
+                alert = self.rule_engine.process(metric_event)
+                self.dispatcher.dispatch(metric_event)
 
-                    # Event'i DB'ye gönder
-                    self.dispatcher.dispatch(ev)
-
-                    # Alert varsa onu da dispatcher'a gönder
-                    if alert:
-                        self.dispatcher.dispatch(alert)
+                if alert:
+                    self.dispatcher.dispatch(alert)
 
             except Exception as e:
-                print(f"[Scheduler] Error in {collector_name}:", str(e))
+                print("[Scheduler] MetricsCollector error:", e)
 
             time.sleep(interval)
 
     # ---------------------------------------------------------
-    # LogCollector ayrı çalışır (tailing)
+    # Generic collector runner
     # ---------------------------------------------------------
-    # def _run_log_collector(self):
-    #     """
-    #     LogCollector sürekli çalışır. (tail -f mantığı)
-    #     Log satırı → parser → event → rule → dispatcher
-    #     """
-    #     print("[Scheduler] LogCollector started")
+    def _run_collector_loop(self, collector, interval, name):
+        print(f"[Scheduler] {name} started ({interval}s interval)")
 
-    #     for event in self.log_collector.run():     # generator
-    #         try:
-    #             alert = self.rule_engine.process(event)
-    #             self.dispatcher.dispatch(event)
-    #             if alert:
-    #                 self.dispatcher.dispatch(alert)
-    #         except Exception as e:
-    #             print("[Scheduler] LogCollector error:", e)
+        while True:
+            try:
+                events = collector.step()
+
+                for ev in events:
+                    alert = self.rule_engine.process(ev)
+                    self.dispatcher.dispatch(ev)
+
+                    if alert:
+                        self.dispatcher.dispatch(alert)
+
+            except Exception as e:
+                print(f"[Scheduler] {name} error:", e)
+
+            time.sleep(interval)
 
     # ---------------------------------------------------------
-    # Config Checker (30-60 dk arası)
+    # LOG tailing loop
+    # ---------------------------------------------------------
+    def _run_log_collector(self):
+        print("[Scheduler] LogCollector started (tail mode)")
+
+        for event in self.log_collector.run():
+            try:
+                alert = self.rule_engine.process(event)
+                self.dispatcher.dispatch(event)
+
+                if alert:
+                    self.dispatcher.dispatch(alert)
+
+            except Exception as e:
+                print("[Scheduler] LogCollector error:", e)
+
+    # ---------------------------------------------------------
+    # CONFIG CHECKER loop
     # ---------------------------------------------------------
     def _run_config_checker(self):
+        interval = self.CONFIG_CHECKER_INTERVAL
+        print(f"[Scheduler] ConfigChecker started (interval={interval}s)")
+
         from backend.core.config_checker.firewall_check import FirewallCheck
-
-        checker = FirewallCheck()  # örnek check
-        interval = 3600  # 1 saat
-
-        print("[Scheduler] ConfigChecker started (interval=1h)")
+        checker = FirewallCheck()
 
         while True:
             try:
                 findings = checker.run()
 
-                for finding in findings:
-                    self.dispatcher.dispatch(finding)
+                for f in findings:
+                    self.dispatcher.dispatch(f)
 
             except Exception as e:
                 print("[Scheduler] ConfigChecker error:", e)
@@ -153,59 +126,36 @@ class Scheduler:
             time.sleep(interval)
 
     # ---------------------------------------------------------
-    # Threadleri başlat
+    # Start all threads
     # ---------------------------------------------------------
-def start(self):
-    """
-    Scheduler tüm thread’leri başlatır.
-    """
-    print("[Scheduler] Starting all collectors...")
+    def start(self):
+        print("[Scheduler] Starting all collectors...")
 
-    self.threads = [
-        # METRICS → özel snapshot loop
-        threading.Thread(
-            target=self._run_metrics_loop,
-            args=(60,),
-            daemon=True,
-        ),
+        # THREAD DEFINITIONS
+        self.threads = [
+            threading.Thread(target=self._run_metrics_loop, daemon=True),
+            threading.Thread(target=self._run_collector_loop,
+                             args=(self.process_collector, self.PROCESS_INTERVAL, "ProcessCollector"),
+                             daemon=True),
+            threading.Thread(target=self._run_collector_loop,
+                             args=(self.network_collector, self.NETWORK_INTERVAL, "NetworkCollector"),
+                             daemon=True),
+            threading.Thread(target=self._run_log_collector, daemon=True),
+            threading.Thread(target=self._run_config_checker, daemon=True),
+        ]
 
-        # PROCESS → step() çalışır, event listesi döndürür
-        threading.Thread(
-            target=self._run_collector_loop,
-            args=(self.process_collector, 10, "ProcessCollector"),
-            daemon=True,
-        ),
+        # START THREADS
+        for t in self.threads:
+            t.start()
 
-        # NETWORK → step() çalışır, event listesi döndürür
-        threading.Thread(
-            target=self._run_collector_loop,
-            args=(self.network_collector, 10, "NetworkCollector"),
-            daemon=True,
-        ),
+        print("[Scheduler] All collectors running.")
 
-        # LOGS → tail -f mantığı, özel runner
-        threading.Thread(
-            target=self._run_log_collector,
-            daemon=True,
-        ),
-
-        # CONFIG CHECKER → 30–60 dk interval
-        threading.Thread(
-            target=self._run_config_checker,
-            daemon=True,
-        ),
-    ]
-
-    # Thread'leri başlat
-    for t in self.threads:
-        t.start()
-
-    print("[Scheduler] All collectors are running.")
+        global scheduler_instance
+        scheduler_instance = self
 
 
-# Standalone çalıştırmak için
+# Standalone run
 if __name__ == "__main__":
     Scheduler().start()
     while True:
         time.sleep(1)
-
