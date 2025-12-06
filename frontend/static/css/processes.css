@@ -79,11 +79,14 @@
 
 .modal-content {
     background: #222;
-    padding: 20px;
-    margin: 12% auto;
-    width: 60%;
+    padding: 16px;
+    margin: 5% auto;        
+    width: 70%;
+    max-height: 80vh;         
+    overflow-y: auto;        
     color: #eee;
     border-radius: 6px;
+    position: relative;
 }
 
 #modal-close {
