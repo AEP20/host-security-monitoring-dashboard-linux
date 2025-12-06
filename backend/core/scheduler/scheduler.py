@@ -53,6 +53,13 @@ class Scheduler:
         self.threads = []
 
         logger.info("[Scheduler] Initialized")
+    
+    
+    def _run_health_loop(self):
+        while True:
+            self.heartbeat["MainThread"] = time.time()
+            time.sleep(2)
+
 
     # ---------------------------------------------------------
     # METRICS LOOP
@@ -130,7 +137,7 @@ class Scheduler:
     # ---------------------------------------------------------
     def start(self):
         logger.info("[Scheduler] Starting all collectors...")
-
+        
         self.threads = [
             threading.Thread(target=self._run_metrics_loop, name="MetricsThread", daemon=False),
 
@@ -146,6 +153,8 @@ class Scheduler:
             #                  daemon=False),
 
             threading.Thread(target=self._run_log_collector, name="LogThread", daemon=False),
+            
+            threading.Thread(target=self._run_health_loop, name="HealthThread", daemon=False),
         ]
 
         for t in self.threads:
