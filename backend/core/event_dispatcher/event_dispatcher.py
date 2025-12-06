@@ -1,12 +1,14 @@
 # core/event_dispatcher/event_dispatcher.py
 # README.md dosyasını oku
 
-from models.process_event_model import ProcessEventModel
 # from models.log_model import LogEventModel
 from backend.models.metric_model import MetricModel
-from models.alert_model import AlertModel
+# from models.alert_model import AlertModel
 # from models.network_event_model import NetworkEvent
 from backend.database import save_metric_snapshot
+
+from backend.models.process_event_model import ProcessEventModel
+from backend.models.alert_model import AlertModel
 
 class EventDispatcher:
 
