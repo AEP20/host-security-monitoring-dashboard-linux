@@ -6,7 +6,7 @@ from backend.core.collector.processes_collector import ProcessCollector
 from backend.core.collector.network_collector import NetworkCollector
 from backend.core.collector.logs_collector import LogsCollector
 
-from backend.core.rules.rule_engine import RuleEngine
+# from backend.core.rules.rule_engine import RuleEngine
 from backend.core.event_dispatcher.event_dispatcher import EventDispatcher
 
 
@@ -36,7 +36,7 @@ class Scheduler:
         self.log_collector = LogsCollector()
 
         # Core engines
-        self.rule_engine = RuleEngine()
+        # self.rule_engine = RuleEngine()
         self.dispatcher = EventDispatcher()
 
         # Thread list
