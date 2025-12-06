@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 
+    {% block extra_styles %}{% endblock %}
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 
@@ -73,6 +75,8 @@
 <script src="{{ url_for('static', filename='js/logs.js') }}"></script>
 <script src="{{ url_for('static', filename='js/config.js') }}"></script>
 <script src="{{ url_for('static', filename='js/alerts.js') }}"></script>
+
+{% block scripts %}{% endblock %}
 
 </body>
 </html>
