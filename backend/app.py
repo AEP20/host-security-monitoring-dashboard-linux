@@ -13,7 +13,7 @@ def create_app():
         template_folder="../frontend/templates",
         static_folder="../frontend/static"
     )
-    
+
     app.config.from_pyfile("config.py")
 
     app.register_blueprint(system_api)
@@ -24,7 +24,7 @@ def create_app():
 
     scheduler.init_app(app)
     scheduler.start()
-    
+
     @app.route("/")
     def index():
         return render_template("dashboard.html")

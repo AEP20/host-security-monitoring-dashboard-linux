@@ -133,15 +133,15 @@ class Scheduler:
 
         # THREAD DEFINITIONS
         self.threads = [
-            threading.Thread(target=self._run_metrics_loop, daemon=True),
+            threading.Thread(target=self._run_metrics_loop, daemon=False),
             threading.Thread(target=self._run_collector_loop,
                              args=(self.process_collector, self.PROCESS_INTERVAL, "ProcessCollector"),
-                             daemon=True),
+                             daemon=False),
             threading.Thread(target=self._run_collector_loop,
                              args=(self.network_collector, self.NETWORK_INTERVAL, "NetworkCollector"),
-                             daemon=True),
-            threading.Thread(target=self._run_log_collector, daemon=True),
-            threading.Thread(target=self._run_config_checker, daemon=True),
+                             daemon=False),
+            threading.Thread(target=self._run_log_collector, daemon=False),
+            threading.Thread(target=self._run_config_checker, daemon=False),
         ]
 
         # START THREADS
