@@ -4,7 +4,7 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from backend.models.base import Base
-from backend.models import log_model, metric_model, alert_model, config_model
+from backend.models.metric_model import MetricModel
 
 DB_PATH = "/var/lib/hids/hids.db"
 
@@ -24,3 +24,12 @@ SessionLocal = sessionmaker(
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    
+def save_metric_snapshot(event: dict):
+    db = SessionLocal()
+    obj = MetricModel(snapshot=event)
+    db.add(obj)
+    db.commit()
+    db.refresh(obj)
+    db.close()
+    return obj

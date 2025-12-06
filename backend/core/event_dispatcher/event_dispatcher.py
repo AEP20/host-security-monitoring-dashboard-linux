@@ -6,6 +6,8 @@ from models.log_model import LogEventModel
 from backend.models.metric_model import MetricModel
 from models.alert_model import AlertModel
 # from models.network_event_model import NetworkEvent
+from backend.database import save_metric_snapshot
+
 
 class EventDispatcher:
 
@@ -41,7 +43,7 @@ class EventDispatcher:
     #     return NetworkEvent.create(event)
 
     def _handle_metric(self, event):
-        return MetricModel.create(event)
+        return save_metric_snapshot(event)
 
     # def _handle_alert(self, event):
     #     return AlertModel.create(event)
