@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
 
                 document.querySelectorAll(".kill-btn").forEach(btn => {
-                    btn.onclick = () => killProcess(btn.dataset.pid);
+                    // btn.onclick = () => killProcess(btn.dataset.pid); şimdilik yok cunku tehlikeli
                 });
             });
     }
