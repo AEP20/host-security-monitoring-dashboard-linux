@@ -1,7 +1,10 @@
 from flask import Flask
 from backend.extensions import scheduler
 from backend.database import init_db
-from backend.api import logs_api, metrics_api, system_api
+from backend.api.system_api import system_api
+from backend.api.metrics_api import metrics_api
+from backend.api.logs_api import logs_api
+
 
 def create_app():
     app = Flask(__name__)
