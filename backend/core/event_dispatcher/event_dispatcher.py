@@ -44,7 +44,6 @@ class EventDispatcher:
         #     return self._handle_alert(event)
 
         # UNKNOWN EVENT
-        # logger.warning(f"[DISPATCH] Unknown event type received: {etype}")
         return None
 
 
