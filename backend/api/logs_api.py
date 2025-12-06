@@ -77,15 +77,32 @@ def get_internal_logs():
             return success(message="Internal log file not found", data="")
 
         MAX_LINES = 200
-        with open(INTERNAL_LOG_PATH, "r") as f:
-            lines = f.readlines()
-            content = "".join(lines[-MAX_LINES:])
+        MAX_BYTES = 50000  # 50 KB limit
 
-        logger.info(f"[logs/internal] Returning last {MAX_LINES} log lines")
+        with open(INTERNAL_LOG_PATH, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            file_size = f.tell()
+
+            # Eğer dosya 50 KB'den küçükse, doğrudan oku
+            if file_size <= MAX_BYTES:
+                f.seek(0)
+                raw = f.read()
+            else:
+                # sondan MAX_BYTES kadar geri git
+                f.seek(-MAX_BYTES, os.SEEK_END)
+                raw = f.read()
+
+        # decode + satıra böl
+        text = raw.decode(errors="ignore")
+        lines = text.splitlines()
+
+        # sadece son 200 satırı al
+        content = "\n".join(lines[-MAX_LINES:])
+
+        logger.info(f"[logs/internal] Returning last {len(lines[-MAX_LINES:])} lines (max {MAX_BYTES} bytes)")
 
         return success(data=content)
 
     except Exception as e:
         logger.exception(f"[logs/internal] Unhandled exception: {e}")
         return error("Failed to read internal logs", exception=e, status_code=500)
-
