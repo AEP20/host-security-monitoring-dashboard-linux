@@ -13,8 +13,11 @@ metrics_api = Blueprint("metrics_api", __name__)
 # GET /api/metrics/latest
 # Returns latest METRIC_SNAPSHOT stored in DB
 # -------------------------------------------
+
 @metrics_api.get("/latest")
 def get_latest_metrics():
+    print("[DEBUG][metrics/latest] Querying latest metric snapshot")
+
     try:
         db = SessionLocal()
         latest = (
@@ -24,12 +27,11 @@ def get_latest_metrics():
         )
         db.close()
 
-        if not latest:
-            return success(message="No metric snapshots recorded yet.", data=None)
-
-        return success(data=latest.to_dict())
+        print("[DEBUG][metrics/latest] Found latest:", bool(latest))
+        return success(data=latest.to_dict() if latest else None)
 
     except Exception as e:
+        print(f"[ERROR][metrics/latest] Exception: {e}")
         return error("Failed to retrieve latest metrics", exception=e, status_code=500)
 
 
@@ -38,8 +40,11 @@ def get_latest_metrics():
 # GET /api/metrics/timeline?limit=50
 # Returns N most recent metric snapshots for graphing
 # -------------------------------------------
+
 @metrics_api.get("/timeline")
 def metrics_timeline():
+    print("[DEBUG][metrics/timeline] Called with limit=", request.args.get("limit"))
+
     try:
         limit = int(request.args.get("limit", 50))
 
@@ -52,12 +57,11 @@ def metrics_timeline():
         )
         db.close()
 
-        # En güncelden eskiye → biz ters çevirelim, grafikler soldan sağa akar
+        print(f"[DEBUG][metrics/timeline] Retrieved {len(rows)} rows")
+
         rows = rows[::-1]
-
-        data = [row.to_dict() for row in rows]
-
-        return success(data=data)
+        return success(data=[row.to_dict() for row in rows])
 
     except Exception as e:
+        print(f"[ERROR][metrics/timeline] Exception: {e}")
         return error("Failed to retrieve metric timeline", exception=e, status_code=500)

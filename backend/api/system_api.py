@@ -33,13 +33,15 @@ def get_thread_states():
 # -------------------------------------------
 #             SYSTEM STATUS
 # -------------------------------------------
-
 @system_api.get("/status")
 def system_status():
+    print("[DEBUG][system_status] Called /api/status endpoint")
 
     try:
         cpu_percent = psutil.cpu_percent(interval=0.15)
         mem = psutil.virtual_memory()
+
+        print(f"[DEBUG][system_status] CPU={cpu_percent}%, MEM={mem.percent}%")
 
         data = {
             "hids_uptime_seconds": get_hids_uptime_seconds(),
@@ -54,9 +56,11 @@ def system_status():
             "scheduler_threads": get_thread_states(),
         }
 
+        print("[DEBUG][system_status] Returning success")
         return success(data=data)
 
     except Exception as e:
+        print(f"[ERROR][system_status] Exception: {e}")
         return error("Failed to retrieve system status", exception=e)
 
 
@@ -64,16 +68,18 @@ def system_status():
 #             THREAD HEALTH
 # -------------------------------------------
 
-from threading import enumerate as list_threads
-last_heartbeats = {}
-
 @system_api.get("/threads")
 def get_thread_health():
+    print("[DEBUG][threads] Called /api/threads")
+
     threads = []
     now = time.time()
 
     for t in list_threads():
         hb = last_heartbeats.get(t.name)
+
+        print(f"[DEBUG][threads] {t.name}: alive={t.is_alive()}, hb={hb}")
+
         hb_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(hb)) if hb else "N/A"
 
         threads.append({
@@ -82,4 +88,5 @@ def get_thread_health():
             "last_heartbeat": hb_str,
         })
 
+    print(f"[DEBUG][threads] Returning {len(threads)} threads")
     return success(data=threads)
