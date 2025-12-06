@@ -220,7 +220,7 @@ function updateDashboard() {
 
     fetchSystemStatus();
     fetchLatestMetrics();
-    // fetchInternalLogs();
+    fetchInternalLogs();
     fetchParsedLogs();
     fetchThreadHealth();
 }
