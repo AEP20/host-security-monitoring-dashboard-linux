@@ -16,6 +16,9 @@ from backend.logger import logger
 class EventDispatcher:
 
     def dispatch(self, event: dict):
+        if not event:
+            return None
+        
         etype = event.get("type", "")
 
         logger.debug(f"[DISPATCH] Received event type={etype}")
