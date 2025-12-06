@@ -2,9 +2,9 @@
 # README.md dosyasını oku
 
 from models.process_event_model import ProcessEventModel
-from models.log_model import LogEvent
-from models.metric_model import Metric
-from models.alert_model import Alert
+from models.log_model import LogEventModel
+from backend.models.metric_model import MetricModel
+from models.alert_model import AlertModel
 # from models.network_event_model import NetworkEvent
 
 class EventDispatcher:
@@ -37,12 +37,12 @@ class EventDispatcher:
     def _handle_process(self, event):
         return ProcessEventModel.create(event)
 
-    def _handle_network(self, event):
-        return NetworkEvent.create(event)
+    # def _handle_network(self, event):
+    #     return NetworkEvent.create(event)
 
     def _handle_metric(self, event):
-        return Metric.create(event)
+        return MetricModel.create(event)
 
-    def _handle_alert(self, event):
-        return Alert.create(event)
+    # def _handle_alert(self, event):
+    #     return AlertModel.create(event)
 
