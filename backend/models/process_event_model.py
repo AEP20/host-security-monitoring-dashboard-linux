@@ -1,5 +1,7 @@
 from sqlalchemy import Column, Integer, String, DateTime, Text, JSON
-from backend.models.base import Base, current_time, db_session
+from backend.models.base import Base, current_time
+from backend.database import SessionLocal
+
 
 class ProcessEventModel(Base):
     """
@@ -69,10 +71,7 @@ class ProcessEventModel(Base):
     # ---------------------------------------------------
     @staticmethod
     def create(event: dict):
-        """
-        Process collector event'ini DB tablosuna kaydeder.
-        event dict'i collector’dan gelen ham datadır.
-        """
+        db = SessionLocal()
 
         obj = ProcessEventModel(
             event_type=event.get("type"),
@@ -96,10 +95,13 @@ class ProcessEventModel(Base):
             raw_event=event
         )
 
-        db_session.add(obj)
-        db_session.commit()
+        db.add(obj)
+        db.commit()
+        db.refresh(obj)
+        db.close()
 
         return obj
+
 
     def to_dict(self):
         return {
