@@ -6,8 +6,10 @@ from backend.core.collector.processes_collector import ProcessCollector
 from backend.core.collector.network_collector import NetworkCollector
 from backend.core.collector.logs_collector import LogsCollector
 
+from backend.core.config_checker.firewall_check import FirewallCheck # ??
+
 # from backend.core.rules.rule_engine import RuleEngine
-from backend.core.event_dispatcher.event_dispatcher import EventDispatcher
+# from backend.core.event_dispatcher.event_dispatcher import EventDispatcher
 
 from backend.logger import logger
 
@@ -113,24 +115,23 @@ class Scheduler:
     # ---------------------------------------------------------
     # CONFIG CHECKER loop
     # ---------------------------------------------------------
-    def _run_config_checker(self):
-        interval = self.CONFIG_CHECKER_INTERVAL
-        logger.info(f"[Scheduler] ConfigChecker started (interval={interval}s)")
+    # def _run_config_checker(self):
+    #     interval = self.CONFIG_CHECKER_INTERVAL
+    #     logger.info(f"[Scheduler] ConfigChecker started (interval={interval}s)")
 
-        from backend.core.config_checker.firewall_check import FirewallCheck # ??
-        checker = FirewallCheck()
+    #     checker = FirewallCheck()
 
-        while True:
-            try:
-                findings = checker.run()
+    #     while True:
+    #         try:
+    #             findings = checker.run()
 
-                for f in findings:
-                    self.dispatcher.dispatch(f)
+    #             for f in findings:
+    #                 self.dispatcher.dispatch(f)
 
-            except Exception:
-                logger.exception("[Scheduler] ConfigChecker error")
+    #         except Exception:
+    #             logger.exception("[Scheduler] ConfigChecker error")
 
-            time.sleep(interval)
+    #         time.sleep(interval)
 
     # ---------------------------------------------------------
     # Start all threads
