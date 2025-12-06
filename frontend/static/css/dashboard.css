@@ -1,0 +1,79 @@
+/* ==== SYSTEM CARDS ==== */
+.system-card-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.system-card {
+    background: white;
+    padding: 18px;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    text-align: center;
+}
+
+.system-card .value {
+    font-size: 26px;
+    margin-top: 5px;
+    font-weight: bold;
+}
+
+/* ==== LOG VIEWER ==== */
+.log-box {
+    background: #111;
+    color: #eee;
+    padding: 12px;
+    border-radius: 8px;
+    font-family: monospace;
+    max-height: 280px;
+    overflow-y: auto;
+    white-space: pre-line;
+    margin-bottom: 25px;
+}
+
+.log-info { color: #9bb1ff; }
+.log-warn { color: #f5d742; }
+.log-error { color: #ff5757; }
+
+/* ==== THREAD TABLE ==== */
+.thread-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 25px;
+}
+
+.thread-table th,
+.thread-table td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+}
+
+.thread-ok {
+    color: #28c76f;
+    font-weight: bold;
+}
+
+.thread-dead {
+    color: #ff4b4b;
+    font-weight: bold;
+}
+
+/* ==== PARSED LOG TABLE ==== */
+.parsed-log-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.parsed-log-table th,
+.parsed-log-table td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+}
+
+.view-all {
+    margin-top: 8px;
+    display: inline-block;
+}

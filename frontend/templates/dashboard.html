@@ -1,0 +1,78 @@
+{% extends "layout.html" %}
+{% set active = "dashboard" %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- ================== SYSTEM CARDS ================== -->
+<div class="system-card-container">
+
+    <div class="system-card" id="cpu-card">
+        <h3>CPU Usage</h3>
+        <p class="value">--%</p>
+    </div>
+
+    <div class="system-card" id="ram-card">
+        <h3>RAM Usage</h3>
+        <p class="value">--%</p>
+    </div>
+
+    <div class="system-card" id="uptime-card">
+        <h3>System Uptime</h3>
+        <p class="value">--</p>
+    </div>
+
+    <div class="system-card" id="metric-time-card">
+        <h3>Last Metrics</h3>
+        <p class="value">--</p>
+    </div>
+
+</div>
+
+
+<!-- ================== APPLICATION LOG VIEWER ================== -->
+<h2>Application Logs</h2>
+
+<div id="internal-log-box" class="log-box">
+    Loading logs...
+</div>
+
+
+<!-- ================== THREAD MONITOR ================== -->
+<h2>Thread Health Monitor</h2>
+
+<table class="thread-table">
+    <thead>
+        <tr>
+            <th>Thread Name</th>
+            <th>Status</th>
+            <th>Last Heartbeat</th>
+        </tr>
+    </thead>
+    <tbody id="thread-table-body">
+        <!-- JS dolduracak -->
+    </tbody>
+</table>
+
+
+<!-- ================== PARSED LOG PREVIEW ================== -->
+<h2>Latest Parsed Logs</h2>
+
+<table class="parsed-log-table">
+    <thead>
+        <tr>
+            <th>Timestamp</th>
+            <th>Severity</th>
+            <th>Event</th>
+            <th>Message</th>
+        </tr>
+    </thead>
+    <tbody id="parsed-logs-body">
+    </tbody>
+</table>
+
+<a href="/logs" class="view-all">View all logs →</a>
+
+
+{% endblock %}

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>HIDS Dashboard</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+
+<body>
+
+<div class="dashboard-container">
+
+    <!-- SIDEBAR-->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" class="logo">
+            <h2>HIDS</h2>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="/dashboard" class="nav-item {% if active == 'dashboard' %}active{% endif %}">
+                <span>📊</span> Dashboard
+            </a>
+            <a href="/logs" class="nav-item {% if active == 'logs' %}active{% endif %}">
+                <span>📜</span> Logs
+            </a>
+            <a href="/processes" class="nav-item {% if active == 'processes' %}active{% endif %}">
+                <span>⚙</span> Processes
+            </a>
+            <a href="/ports" class="nav-item {% if active == 'ports' %}active{% endif %}">
+                <span>🔌</span> Ports
+            </a>
+            <a href="/alerts" class="nav-item {% if active == 'alerts' %}active{% endif %}">
+                <span>🚨</span> Alerts
+            </a>
+            <a href="/config" class="nav-item {% if active == 'config' %}active{% endif %}">
+                <span>🛡</span> Config
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <small>HIDS v1.0</small>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+
+        <header class="topbar">
+            <div class="topbar-left">
+                <h1>{% block page_title %}{% endblock %}</h1>
+            </div>
+
+            <div class="topbar-right">
+                <div id="system-status-indicator" class="status-dot green"></div>
+                <span id="system-status-text">System OK</span>
+            </div>
+        </header>
+
+
+        <section class="content">
+            {% block content %}{% endblock %}
+        </section>
+
+    </main>
+</div>
+
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script src="{{ url_for('static', filename='js/logs.js') }}"></script>
+<script src="{{ url_for('static', filename='js/config.js') }}"></script>
+<script src="{{ url_for('static', filename='js/alerts.js') }}"></script>
+
+</body>
+</html>

@@ -1,0 +1,97 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+}
+
+.dashboard-container {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 230px;
+    background: #1c1f26;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    padding: 15px 10px;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sidebar-header .logo {
+    width: 32px;
+    height: 32px;
+}
+
+.sidebar-nav {
+    margin-top: 25px;
+    flex-grow: 1;
+}
+
+.nav-item {
+    display: block;
+    padding: 10px 12px;
+    margin-bottom: 4px;
+    color: #ccc;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.nav-item span {
+    margin-right: 6px;
+}
+
+.nav-item:hover,
+.nav-item.active {
+    background: #2e3340;
+    color: #fff;
+}
+
+.sidebar-footer {
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.6;
+}
+
+.main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.topbar {
+    height: 60px;
+    background: #ffffff;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-dot.green {
+    background: #3ccf57;
+}
+
+.status-dot.red {
+    background: #ff4b4b;
+}
+
+.content {
+    padding: 25px;
+    overflow-y: auto;
+}
