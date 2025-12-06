@@ -15,7 +15,7 @@ logs_api = Blueprint("logs_api", __name__)
 # Returns parsed LogEventModel entries
 # Supports filtering, pagination, search
 # -------------------------------------------
-@logs_api.get("/api/logs/events")
+@logs_api.get("/events")
 def get_log_events():
     try:
         db = SessionLocal()
@@ -65,7 +65,7 @@ def get_log_events():
 # GET /api/logs/internal
 # Returns internal HIDS application logs
 # -------------------------------------------
-@logs_api.get("/api/logs/internal")
+@logs_api.get("/internal")
 def get_internal_logs():
     """
     Reads internal log file (HIDS debugging logs).

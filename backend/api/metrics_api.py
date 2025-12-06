@@ -13,7 +13,7 @@ metrics_api = Blueprint("metrics_api", __name__)
 # GET /api/metrics/latest
 # Returns latest METRIC_SNAPSHOT stored in DB
 # -------------------------------------------
-@metrics_api.get("/api/metrics/latest")
+@metrics_api.get("/latest")
 def get_latest_metrics():
     try:
         db = SessionLocal()
@@ -38,7 +38,7 @@ def get_latest_metrics():
 # GET /api/metrics/timeline?limit=50
 # Returns N most recent metric snapshots for graphing
 # -------------------------------------------
-@metrics_api.get("/api/metrics/timeline")
+@metrics_api.get("/timeline")
 def metrics_timeline():
     try:
         limit = int(request.args.get("limit", 50))
