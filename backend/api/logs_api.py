@@ -69,7 +69,6 @@ def get_log_events():
 @logs_api.get("/internal")
 def get_internal_logs():
     INTERNAL_LOG_PATH = "/var/log/hids/app.log"
-    # print(f"[DEBUG][logs/internal] Reading internal logs from {INTERNAL_LOG_PATH}")
     logger.debug(f"[logs/internal] Reading internal logs from {INTERNAL_LOG_PATH}")
 
     try:
@@ -77,13 +76,16 @@ def get_internal_logs():
             logger.warning("[logs/internal] Internal log file not found")
             return success(message="Internal log file not found", data="")
 
+        MAX_LINES = 200
         with open(INTERNAL_LOG_PATH, "r") as f:
-            content = f.read()
+            lines = f.readlines()
+            content = "".join(lines[-MAX_LINES:])
 
-        logger.info("[logs/internal] Returning internal log content")
+        logger.info(f"[logs/internal] Returning last {MAX_LINES} log lines")
 
         return success(data=content)
 
     except Exception as e:
         logger.exception(f"[logs/internal] Unhandled exception: {e}")
         return error("Failed to read internal logs", exception=e, status_code=500)
+
