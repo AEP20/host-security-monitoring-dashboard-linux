@@ -7,7 +7,7 @@ from backend.core.collector.network_collector import NetworkCollector
 from backend.core.collector.logs_collector import LogsCollector
 
 # from backend.core.rules.rule_engine import RuleEngine
-# from backend.core.event_dispatcher.event_dispatcher import EventDispatcher
+from backend.core.event_dispatcher.event_dispatcher import EventDispatcher
 
 from backend.logger import logger
 
