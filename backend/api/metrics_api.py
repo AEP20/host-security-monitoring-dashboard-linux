@@ -28,11 +28,34 @@ def get_latest_metrics():
         db.close()
 
         print("[DEBUG][metrics/latest] Found latest:", bool(latest))
-        return success(data=latest.to_dict() if latest else None)
+
+        if not latest:
+            return success(data=None)
+
+        # -----------------------------
+        #  EXTRACT FIELDS FOR DASHBOARD
+        # -----------------------------
+        snap = latest.to_dict().get("snapshot", {})
+
+        cpu_percent = snap.get("cpu", {}).get("total_percent")
+        ram_percent = snap.get("memory", {}).get("ram", {}).get("percent")
+        uptime_seconds = snap.get("system", {}).get("uptime_seconds")
+        timestamp = latest.timestamp.isoformat()
+
+        enriched = {
+            **latest.to_dict(),
+            "cpu_percent": cpu_percent,
+            "ram_percent": ram_percent,
+            "uptime_seconds": uptime_seconds,
+            "timestamp": timestamp,
+        }
+
+        return success(data=enriched)
 
     except Exception as e:
         print(f"[ERROR][metrics/latest] Exception: {e}")
         return error("Failed to retrieve latest metrics", exception=e, status_code=500)
+
 
 
 

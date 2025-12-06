@@ -33,6 +33,19 @@ def get_thread_states():
 # -------------------------------------------
 #             SYSTEM STATUS
 # -------------------------------------------
+def format_seconds(seconds):
+    mins, sec = divmod(int(seconds), 60)
+    hrs, mins = divmod(mins, 60)
+    days, hrs = divmod(hrs, 24)
+
+    if days > 0:
+        return f"{days}d {hrs}h {mins}m"
+    elif hrs > 0:
+        return f"{hrs}h {mins}m"
+    else:
+        return f"{mins}m"
+
+
 @system_api.get("/status")
 def system_status():
     print("[DEBUG][system_status] Called /api/status endpoint")
@@ -43,9 +56,12 @@ def system_status():
 
         print(f"[DEBUG][system_status] CPU={cpu_percent}%, MEM={mem.percent}%")
 
+        sys_up = get_system_uptime_seconds()
+
         data = {
             "hids_uptime_seconds": get_hids_uptime_seconds(),
-            "system_uptime_seconds": get_system_uptime_seconds(),
+            "system_uptime_seconds": sys_up,
+            "system_uptime_human": format_seconds(sys_up),   
 
             "cpu_percent": cpu_percent,
             "memory_percent": mem.percent,
