@@ -117,7 +117,7 @@ class Scheduler:
         interval = self.CONFIG_CHECKER_INTERVAL
         logger.info(f"[Scheduler] ConfigChecker started (interval={interval}s)")
 
-        from backend.core.config_checker.firewall_check import FirewallCheck
+        from backend.core.config_checker.firewall_check import FirewallCheck # ??
         checker = FirewallCheck()
 
         while True:
@@ -141,16 +141,20 @@ class Scheduler:
         # THREAD DEFINITIONS
         self.threads = [
             threading.Thread(target=self._run_metrics_loop, name="MetricsThread", daemon=False),
-            threading.Thread(target=self._run_collector_loop,
-                             args=(self.process_collector, self.PROCESS_INTERVAL, "ProcessCollector"),
-                             name="ProcessThread",
-                             daemon=False),
-            threading.Thread(target=self._run_collector_loop,
-                             args=(self.network_collector, self.NETWORK_INTERVAL, "NetworkCollector"),
-                             name="NetworkThread",
-                             daemon=False),
+            
+            # threading.Thread(target=self._run_collector_loop,
+            #                  args=(self.process_collector, self.PROCESS_INTERVAL, "ProcessCollector"),
+            #                  name="ProcessThread",
+            #                  daemon=False),
+            
+            # threading.Thread(target=self._run_collector_loop,
+            #                  args=(self.network_collector, self.NETWORK_INTERVAL, "NetworkCollector"),
+            #                  name="NetworkThread",
+            #                  daemon=False),
+            
             threading.Thread(target=self._run_log_collector, name="LogThread", daemon=False),
-            threading.Thread(target=self._run_config_checker, name="ConfigCheckerThread", daemon=False),
+            
+            # threading.Thread(target=self._run_config_checker, name="ConfigCheckerThread", daemon=False),
         ]
 
         # START THREADS

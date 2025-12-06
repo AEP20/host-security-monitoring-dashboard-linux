@@ -31,4 +31,6 @@ source /opt/HIDS/venv/bin/activate -> activate venv
     sudo systemctl status hids.service
     sudo systemctl enable hids.service
     sudo systemctl stop hids.service
+    sudo systemctl start hids.service
+    sudo journalctl -u hids.service -f
 /var/log/hids/app.log      -> HIDS uygulama logları -> head -n 150 /var/log/hids/app.log
