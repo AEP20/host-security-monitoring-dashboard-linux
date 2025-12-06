@@ -91,3 +91,36 @@
     cursor: pointer;
     font-size: 24px;
 }
+
+
+/* EVENT TABLOSU KOLON GENİŞLİKLERİ */
+#tab-events .table th:nth-child(1),
+#tab-events .table td:nth-child(1) {
+    width: 180px;     /* Timestamp */
+}
+
+#tab-events .table th:nth-child(2),
+#tab-events .table td:nth-child(2) {
+    width: 150px;     /* Event Type */
+}
+
+#tab-events .table th:nth-child(3),
+#tab-events .table td:nth-child(3) {
+    width: 80px;      /* PID */
+}
+
+#tab-events .table th:nth-child(4),
+#tab-events .table td:nth-child(4) {
+    width: 150px;     /* Name */
+}
+
+#tab-events .table th:nth-child(5),
+#tab-events .table td:nth-child(5) {
+    width: 70px;      /* Details button */
+}
+
+#tab-events .table td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
