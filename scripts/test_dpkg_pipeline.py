@@ -8,7 +8,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
 
 from backend.core.collector.logs_collector import LogsCollector
-from backend.core.parser.dispatcher import LogDispatcher
+from backend.core.parser.LogDispatcher import LogDispatcher
 from backend.database import SessionLocal
 from backend.models.log_model import LogEventModel
 
