@@ -108,7 +108,7 @@ class Scheduler:
             except Exception:
                 logger.exception("[Scheduler] LogCollector error")
 
-            time.sleep(1)
+            time.sleep(3)
 
     # ---------------------------------------------------------
     # CONFIG CHECKER loop
