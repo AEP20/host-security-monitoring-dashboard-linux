@@ -8,9 +8,14 @@ from backend.api.logs_api import logs_api
 
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(
+        __name__,
+        template_folder="../frontend/templates",
+        static_folder="../frontend/static"
+    )
     
     app.config.from_pyfile("config.py")
+
     app.register_blueprint(system_api)
     app.register_blueprint(metrics_api)
     app.register_blueprint(logs_api)
@@ -28,8 +33,3 @@ def create_app():
 
 
 app = create_app()
-
-def start():
-    app.run(host="0.0.0.0", port=5000)
-
-start()
