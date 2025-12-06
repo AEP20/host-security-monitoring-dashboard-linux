@@ -40,6 +40,10 @@ def create_app():
     @app.route("/logs")
     def logs_page():
         return render_template("logs.html")
+    
+    @app.route("/processes")
+    def processes_page():
+        return render_template("processes.html")
 
     logger.info("[APP] Flask application created successfully")
     return app
