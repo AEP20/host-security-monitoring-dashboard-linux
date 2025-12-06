@@ -43,27 +43,41 @@ class MetricsCollector:
     def __init__(self, include_per_disk=False, include_per_nic=False):
         self.include_per_disk = include_per_disk
         self.include_per_nic = include_per_nic
+        print(f"[DEBUG][MetricsCollector] Initialized include_per_disk={include_per_disk}, include_per_nic={include_per_nic}")
 
     # Public API
     def collect(self):
+        print("[DEBUG][MetricsCollector] collect() called")
         return self.snapshot()
 
     def snapshot(self):
         now = time.time()
+        print(f"[DEBUG][MetricsCollector] snapshot() started at {now}")
+
+        cpu = self._collect_cpu()
+        mem = self._collect_memory()
+        disk = self._collect_disk()
+        net = self._collect_network()
+        sysinfo = self._collect_system()
+
+        print("[DEBUG][MetricsCollector] snapshot() completed — CPU/MEM/DISK/NET/SYS collected")
+
         return {
             "type": "METRIC_SNAPSHOT",
             "timestamp": now,
-            "cpu": self._collect_cpu(),
-            "memory": self._collect_memory(),
-            "disk": self._collect_disk(),
-            "network": self._collect_network(),
-            "system": self._collect_system(),
+            "cpu": cpu,
+            "memory": mem,
+            "disk": disk,
+            "network": net,
+            "system": sysinfo,
         }
 
     # ---------------------------------------------------
     # CPU
     # ---------------------------------------------------
     def _collect_cpu(self):
+        print("[DEBUG][MetricsCollector][CPU] Collecting CPU metrics")
+
         total_percent = psutil.cpu_percent(interval=0.1)
         per_cpu_percent = psutil.cpu_percent(interval=None, percpu=True)
 
@@ -72,7 +86,10 @@ class MetricsCollector:
             try:
                 load1, load5, load15 = os.getloadavg()
             except OSError:
+                print("[WARN][MetricsCollector][CPU] getloadavg() not available")
                 pass
+
+        print(f"[DEBUG][MetricsCollector][CPU] total_percent={total_percent}, load1={load1}")
 
         return {
             "total_percent": total_percent,
@@ -90,8 +107,12 @@ class MetricsCollector:
     # MEMORY
     # ---------------------------------------------------
     def _collect_memory(self):
+        print("[DEBUG][MetricsCollector][MEM] Collecting memory metrics")
+
         mem = psutil.virtual_memory()
         swap = psutil.swap_memory()
+
+        print(f"[DEBUG][MetricsCollector][MEM] ram_used={mem.used}, ram_percent={mem.percent}")
 
         return {
             "ram": {
@@ -113,6 +134,8 @@ class MetricsCollector:
     # DISK
     # ---------------------------------------------------
     def _collect_disk(self):
+        print(f"[DEBUG][MetricsCollector][DISK] Collecting disk metrics (per-disk={self.include_per_disk})")
+
         disks = []
 
         if self.include_per_disk:
@@ -121,7 +144,10 @@ class MetricsCollector:
                 try:
                     usage = psutil.disk_usage(mount)
                 except PermissionError:
+                    print(f"[WARN][MetricsCollector][DISK] Permission denied for mount {mount}")
                     continue
+
+                print(f"[DEBUG][MetricsCollector][DISK] {mount}: used={usage.used}, percent={usage.percent}")
 
                 disks.append(
                     {
@@ -136,6 +162,8 @@ class MetricsCollector:
         else:
             try:
                 usage = psutil.disk_usage("/")
+                print(f"[DEBUG][MetricsCollector][DISK] root/: used={usage.used}, percent={usage.percent}")
+
                 disks.append(
                     {
                         "mount": "/",
@@ -146,7 +174,8 @@ class MetricsCollector:
                         "percent": usage.percent,
                     }
                 )
-            except Exception:
+            except Exception as e:
+                print(f"[ERROR][MetricsCollector][DISK] Failed to read disk '/': {e}")
                 pass
 
         return disks
@@ -155,11 +184,14 @@ class MetricsCollector:
     # NETWORK IO (NOT CONNECTIONS)
     # ---------------------------------------------------
     def _collect_network(self):
+        print(f"[DEBUG][MetricsCollector][NET] Collecting network IO (per_nic={self.include_per_nic})")
+
         net = psutil.net_io_counters(pernic=self.include_per_nic)
 
         if self.include_per_nic:
             result = {}
             for iface, stats in net.items():
+                print(f"[DEBUG][MetricsCollector][NET] iface {iface}: sent={stats.bytes_sent}, recv={stats.bytes_recv}")
                 result[iface] = {
                     "bytes_sent": stats.bytes_sent,
                     "bytes_recv": stats.bytes_recv,
@@ -171,6 +203,8 @@ class MetricsCollector:
                     "dropout": stats.dropout,
                 }
             return result
+
+        print(f"[DEBUG][MetricsCollector][NET] sent={net.bytes_sent}, recv={net.bytes_recv}")
 
         return {
             "bytes_sent": net.bytes_sent,
@@ -187,9 +221,13 @@ class MetricsCollector:
     # SYSTEM INFO (NO PROCESS DATA)
     # ---------------------------------------------------
     def _collect_system(self):
+        print("[DEBUG][MetricsCollector][SYS] Collecting system info")
+
         boot_time = psutil.boot_time()
         now = time.time()
         uptime_seconds = now - boot_time
+
+        print(f"[DEBUG][MetricsCollector][SYS] uptime_seconds={uptime_seconds}")
 
         return {
             "type": "METRIC_SNAPSHOT",
