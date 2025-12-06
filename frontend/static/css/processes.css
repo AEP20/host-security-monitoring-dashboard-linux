@@ -20,23 +20,33 @@
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 
-.table-wrapper {
+.table {
     width: 100%;
-    overflow-x: auto;   /* 🔥 Sağ-sol kaydırma */
-    overflow-y: hidden;
+    border-collapse: collapse;
+    margin-top: 12px;
+    table-layout: fixed;   
+    font-size: 13px;     
 }
 
 .table {
-    min-width: 900px;   /* Tablo minimum genişliği */
+    min-width: 900px;  
     width: 100%;
     border-collapse: collapse;
     margin-top: 12px;
 }
 
 .table th, .table td {
-    padding: 10px;
+    padding: 8px;
     border-bottom: 1px solid #333;
+    white-space: nowrap;     
+    overflow: hidden;        
+    text-overflow: ellipsis; 
 }
+
+.table td:nth-child(6) {
+    max-width: 200px; 
+}
+
 
 .kill-btn {
     padding: 4px 8px;
