@@ -36,6 +36,10 @@ def create_app():
     @app.route("/")
     def index():
         return render_template("dashboard.html")
+    
+    @app.route("/logs")
+    def logs_page():
+        return render_template("logs.html")
 
     logger.info("[APP] Flask application created successfully")
     return app
