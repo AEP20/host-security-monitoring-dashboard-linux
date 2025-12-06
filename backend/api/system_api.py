@@ -95,12 +95,19 @@ def get_thread_health():
     threads = []
     now = time.time()
 
+    from backend.core.scheduler.scheduler import scheduler_instance
+
+    scheduler_hb = {}
+    if scheduler_instance:
+        scheduler_hb = scheduler_instance.heartbeat  
+
     for t in list_threads():
-        hb = last_heartbeats.get(t.name)
+        hb = scheduler_hb.get(t.name)  # ← doğru kaynağı oku
 
-        logger.debug(f"[threads] Thread={t.name}, alive={t.is_alive()}, heartbeat={hb}")
-
-        hb_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(hb)) if hb else "N/A"
+        hb_str = (
+            time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(hb))
+            if hb else "N/A"
+        )
 
         threads.append({
             "name": t.name,
@@ -108,5 +115,4 @@ def get_thread_health():
             "last_heartbeat": hb_str,
         })
 
-    logger.info(f"[threads] Returning {len(threads)} thread health entries")
     return success(data=threads)
