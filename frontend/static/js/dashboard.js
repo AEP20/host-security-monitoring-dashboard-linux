@@ -59,7 +59,6 @@ async function fetchLatestMetrics() {
     }
 }
 
-
 // ====================== INTERNAL LOG VIEWER ======================
 async function fetchInternalLogs() {
     console.log("[DEBUG][fetchInternalLogs] Called");
@@ -83,12 +82,35 @@ async function fetchInternalLogs() {
         let content = data.data || "";
         console.log("[DEBUG][fetchInternalLogs] Raw content length:", content.length);
 
-        // Renklendirme
-        content = content
-            .replace(/\bINFO\b/g, '<span class="log-info">INFO</span>')
-            .replace(/\bWARNING\b/g, '<span class="log-warn">WARNING</span>')
-            .replace(/\bERROR\b/g, '<span class="log-error">ERROR</span>');
+        // ======================
+        // 1) Future proof: Very large log protection
+        // ======================
+        if (content.length > 20000) {
+            console.warn("[WARN][fetchInternalLogs] Log too large, trimming...");
+            content = content.slice(-20000); // keep last 20k chars
+        }
 
+        // ======================
+        // 2) Syntax highlighting (safe range check)
+        // ======================
+        if (content.length < 50000) {
+            content = content
+                .replace(/\bINFO\b/g, '<span class="log-info">INFO</span>')
+                .replace(/\bWARNING\b/g, '<span class="log-warn">WARNING</span>')
+                .replace(/\bERROR\b/g, '<span class="log-error">ERROR</span>');
+        }
+
+        // ======================
+        // 3) DOM reset guard
+        // ======================
+        if (logBox.innerHTML.length > 60000) {
+            console.warn("[WARN][fetchInternalLogs] Clearing oversized DOM container...");
+            logBox.innerHTML = "";
+        }
+
+        // ======================
+        // 4) Render and auto-scroll
+        // ======================
         logBox.innerHTML = content;
         logBox.scrollTop = logBox.scrollHeight;
 
@@ -98,6 +120,7 @@ async function fetchInternalLogs() {
         console.error("Internal log error:", e);
     }
 }
+
 
 
 // ====================== THREAD MONITOR ======================
