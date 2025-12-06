@@ -53,11 +53,11 @@ class Scheduler:
             try:
                 metric_event = self.metrics_collector.snapshot()
 
-                alert = self.rule_engine.process(metric_event)
+                # alert = self.rule_engine.process(metric_event)
                 self.dispatcher.dispatch(metric_event)
 
-                if alert:
-                    self.dispatcher.dispatch(alert)
+                # if alert:
+                #     self.dispatcher.dispatch(alert)
 
             except Exception as e:
                 print("[Scheduler] MetricsCollector error:", e)
@@ -75,11 +75,11 @@ class Scheduler:
                 events = collector.step()
 
                 for ev in events:
-                    alert = self.rule_engine.process(ev)
+                    # alert = self.rule_engine.process(ev)
                     self.dispatcher.dispatch(ev)
 
-                    if alert:
-                        self.dispatcher.dispatch(alert)
+                    # if alert:
+                    #     self.dispatcher.dispatch(alert)
 
             except Exception as e:
                 print(f"[Scheduler] {name} error:", e)
@@ -94,11 +94,11 @@ class Scheduler:
 
         for event in self.log_collector.run():
             try:
-                alert = self.rule_engine.process(event)
+                # alert = self.rule_engine.process(event)
                 self.dispatcher.dispatch(event)
 
-                if alert:
-                    self.dispatcher.dispatch(alert)
+                # if alert:
+                #     self.dispatcher.dispatch(alert)
 
             except Exception as e:
                 print("[Scheduler] LogCollector error:", e)
