@@ -20,7 +20,14 @@
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;   /* 🔥 Sağ-sol kaydırma */
+    overflow-y: hidden;
+}
+
 .table {
+    min-width: 900px;   /* Tablo minimum genişliği */
     width: 100%;
     border-collapse: collapse;
     margin-top: 12px;
