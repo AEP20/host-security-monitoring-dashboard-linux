@@ -4,7 +4,7 @@ import time
 from backend.core.collector.metrics_collector import MetricsCollector
 from backend.core.collector.processes_collector import ProcessCollector
 from backend.core.collector.network_collector import NetworkCollector
-from backend.core.collector.logs_collector import LogCollector
+from backend.core.collector.logs_collector import LogsCollector
 
 from backend.core.rules.rule_engine import RuleEngine
 from backend.core.event_dispatcher.event_dispatcher import EventDispatcher
@@ -33,7 +33,7 @@ class Scheduler:
         self.metrics_collector = MetricsCollector()
         self.process_collector = ProcessCollector()
         self.network_collector = NetworkCollector()
-        self.log_collector = LogCollector()
+        self.log_collector = LogsCollector()
 
         # Core engines
         self.rule_engine = RuleEngine()
