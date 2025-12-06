@@ -16,9 +16,10 @@ def create_app():
 
     app.config.from_pyfile("config.py")
 
-    app.register_blueprint(system_api)
-    app.register_blueprint(metrics_api)
-    app.register_blueprint(logs_api)
+    app.register_blueprint(system_api, url_prefix="/api/system")
+    app.register_blueprint(metrics_api, url_prefix="/api/metrics")
+    app.register_blueprint(logs_api, url_prefix="/api/logs")
+
 
     init_db()
 
