@@ -3,6 +3,7 @@ from backend.database import init_db
 
 from backend.api.system_api import system_api
 from backend.api.metrics_api import metrics_api
+from backend.api.network_api import network_api
 from backend.api.logs_api import logs_api
 from backend.api.processes_api import process_api as processes_api
 from backend.core.scheduler.scheduler import Scheduler
@@ -25,6 +26,7 @@ def create_app():
     app.register_blueprint(metrics_api, url_prefix="/api/metrics")
     app.register_blueprint(logs_api, url_prefix="/api/logs")
     app.register_blueprint(processes_api, url_prefix="/api/process")
+    app.register_blueprint(network_api, url_prefix="/api/network")
 
     logger.debug("[APP] Blueprints registered")
 
@@ -46,6 +48,10 @@ def create_app():
     @app.route("/processes")
     def processes_page():
         return render_template("processes.html")
+    
+    @app.route("/network")
+    def network_page():
+        return render_template("network.html")
 
     logger.info("[APP] Flask application created successfully")
     return app

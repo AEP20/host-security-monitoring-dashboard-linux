@@ -4,7 +4,7 @@
 # from models.log_model import LogEventModel
 from backend.models.metric_model import MetricModel
 # from models.alert_model import AlertModel
-# from models.network_event_model import NetworkEvent
+from models.network_event_model import NetworkEventModel
 from backend.database import save_metric_snapshot
 
 from backend.models.process_event_model import ProcessEventModel
@@ -28,10 +28,10 @@ class EventDispatcher:
             logger.debug(f"[DISPATCH] → Routing PROCESS event {etype}")
             return self._handle_process(event)
 
-        # # NETWORK EVENTS
-        # if etype.startswith("NET_") or etype.startswith("CONNECTION_"):
-        #     logger.debug(f"[DISPATCH] → Routing NETWORK event {etype}")
-        #     return self._handle_network(event)
+        # NETWORK EVENTS
+        if etype.startswith("NET_") or etype.startswith("CONNECTION_"):
+            logger.debug(f"[DISPATCH] → Routing NETWORK event {etype}")
+            return self._handle_network(event)
 
         # METRICS
         if etype == "METRIC_SNAPSHOT":
@@ -61,15 +61,15 @@ class EventDispatcher:
             return None
 
 
-    # def _handle_network(self, event):
-    #     logger.debug(f"[DISPATCH][NETWORK] Handling network event: {event.get('type')}")
-    #     try:
-    #         # Şimdilik model yok → sadece debug bastık
-    #         # NetworkEvent.create(event) gibi ileride eklenecek
-    #         return None
-    #     except Exception as e:
-    #         logger.error(f"[DISPATCH][NETWORK] Failed: {e}")
-    #         return None
+    def _handle_network(self, event):
+        logger.debug(f"[DISPATCH][NETWORK] Handling network event: {event.get('type')}")
+        try:
+            result = NetworkEventModel.create(event)
+            logger.debug("[DISPATCH][NETWORK] Saved successfully")
+            return result
+        except Exception as e:
+            logger.error(f"[DISPATCH][NETWORK] Failed: {e}")
+            return None
 
 
     def _handle_metric(self, event):
