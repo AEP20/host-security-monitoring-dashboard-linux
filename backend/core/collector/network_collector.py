@@ -162,9 +162,21 @@ class NetworkCollector:
             f"prev_keys={len(prev_keys)}, curr_keys={len(curr_keys)}"
         )
 
-        # NEW events
+        # ================================
+        # NEW CONNECTIONS
+        # ================================
         for k in curr_keys - prev_keys:
             c = curr_map[k]
+
+            # IGNORE TIME_WAIT
+            if c.get("status") == "TIME_WAIT":
+                logger.debug(f"[NETIGNORE] Ignoring TIME_WAIT connection: {c}")
+                continue
+
+            # IGNORE 127.0.0.1 to 127.0.0.1:5000 (internal agent traffic)
+            if c.get("laddr_port") == 5000 and c.get("laddr_ip") in {"127.0.0.1", "0.0.0.0"}:
+                logger.debug(f"[NETIGNORE] Ignoring internal agent traffic: {c}")
+                continue
 
             if c["is_listen"]:
                 events.append({
@@ -187,9 +199,21 @@ class NetworkCollector:
                     **c
                 })
 
-        # CLOSED events
+        # ================================
+        # CLOSED CONNECTIONS
+        # ================================
         for k in prev_keys - curr_keys:
             c = prev_map[k]
+
+            # IGNORE TIME_WAIT
+            if c.get("status") == "TIME_WAIT":
+                logger.debug(f"[NETIGNORE] Ignoring TIME_WAIT connection: {c}")
+                continue
+
+            # IGNORE AGENT LOOPBACK TRAFFIC ON PORT 5000
+            if c.get("laddr_port") == 5000 and c.get("laddr_ip") in {"127.0.0.1", "0.0.0.0"}:
+                logger.debug(f"[NETIGNORE] Ignoring internal agent traffic: {c}")
+                continue
 
             if c["is_listen"]:
                 events.append({
@@ -212,7 +236,6 @@ class NetworkCollector:
                     **c
                 })
 
-        # Detailed diff output
         logger.debug(
             f"[NETDEBUG][DIFF] produced={len(events)} | "
             f"new={len([e for e in events if e['type']=='NET_NEW_CONNECTION'])}, "

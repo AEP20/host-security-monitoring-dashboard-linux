@@ -85,15 +85,15 @@ async function fetchInternalLogs() {
         // ======================
         // 1) Future proof: Very large log protection
         // ======================
-        if (content.length > 10000) {
+        if (content.length > 14000) {
             console.warn("[WARN][fetchInternalLogs] Log too large, trimming...");
-            content = content.slice(-10000); // keep last 20k chars
+            content = content.slice(-14000); // keep last 20k chars
         }
 
         // ======================
         // 2) Syntax highlighting (safe range check)
         // ======================
-        if (content.length < 12000) {
+        if (content.length < 16000) {
             content = content
                 .replace(/\bINFO\b/g, '<span class="log-info">INFO</span>')
                 .replace(/\bWARNING\b/g, '<span class="log-warn">WARNING</span>')
@@ -103,7 +103,7 @@ async function fetchInternalLogs() {
         // ======================
         // 3) DOM reset guard
         // ======================
-        if (logBox.innerHTML.length > 15000) {
+        if (logBox.innerHTML.length > 20000) {
             console.warn("[WARN][fetchInternalLogs] Clearing oversized DOM container...");
             logBox.innerHTML = "";
         }
