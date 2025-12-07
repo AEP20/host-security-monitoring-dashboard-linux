@@ -76,7 +76,7 @@ def get_internal_logs():
             logger.warning("[logs/internal] Internal log file not found")
             return success(message="Internal log file not found", data="")
 
-        MAX_LINES = 200
+        MAX_LINES = 500
         MAX_BYTES = 50000  # 50 KB limit
 
         with open(INTERNAL_LOG_PATH, "rb") as f:

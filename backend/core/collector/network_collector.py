@@ -1,189 +1,3 @@
-#network_collector
-
-# 🟦 📌 NETWORK COLLECTOR — (Snapshot)
-# Nasıl çalışmalı?
-# A) psutil
-
-# | Görev                         | Tür   | Açıklama                                                                |
-# | ----------------------------- | ----- | ----------------------------------------------------------------------- |
-# | *Interface I/O ölçümü*      | STATE | Her interface için trafik istatistikleri (bytes/packets, errors, drops) |
-# | *Aktif bağlantı listesi*    | STATE | Sistemdeki tüm TCP/UDP bağlantılarının snapshot’ı                       |
-# | *Yeni bağlantı tespiti*     | EVENT | Snapshot diff ile tespit edilen yeni remote IP/port bağlantıları        |
-# | *Bağlantı kapanması*        | EVENT | Önceki snapshot’ta olup şu anda olmayan bağlantılar                     |
-# | *Yeni listening port*       | EVENT | Bir process’in yeni bir LISTEN port açması (server davranışı)           |
-# | *Process–connection eşleme* | STATE | Her bağlantının hangi PID/process tarafından açıldığının belirlenmesi   |
-
-# Çalışma Mantığı (Özet)
-# -Local JSON cache → previous snapshot olarak yüklenir
-# •⁠  ⁠psutil ile current snapshot toplanır
-# •⁠  ⁠previous vs current → diff yapılır
-# •⁠  ⁠NEW_CONNECTION, CLOSED_CONNECTION, NEW_LISTEN_PORT gibi event’ler oluşturulur
-# •⁠  ⁠Event’ler DB’ye veya mesaj kuyruğuna gönderilir
-# •⁠  ⁠current snapshot → RAM’de previous olarak overwrite edilir
-# •⁠  ⁠current snapshot → local cache’e overwrite edilerek kaydedilir
-
-# oluşturulan eventler event_dispatchera gidip orada dbye kaydolacağı için eventlerin başında  NET_ veya CONNECTION_ olarak başlamalıdır.
-# event_dispatcher icindeki kısım aşağıdaki gibidir,
-
-        # # NETWORK
-        # if etype.startswith("NET_") or etype.startswith("CONNECTION_"):
-        #     return self._handle_network(event)
-        
-#### tüm event tipleri,
-
-# -----------------------------------------
-# NET_NEW_CONNECTION
-# -----------------------------------------
-# Bir process, yeni bir remote bağlantı açtı.
-
-# Alanlar:
-# - type: "NET_NEW_CONNECTION"
-# - timestamp
-# - pid
-# - process_name
-# - laddr_ip
-# - laddr_port
-# - raddr_ip
-# - raddr_port
-# - status  (ESTABLISHED / SYN_SENT / SYN_RECV)
-
-
-# -----------------------------------------
-# NET_CLOSED_CONNECTION
-# -----------------------------------------
-# Önceden var olan bir bağlantı artık yok.
-
-# Alanlar:
-# - type: "NET_CLOSED_CONNECTION"
-# - timestamp
-# - pid
-# - process_name
-# - laddr_ip
-# - laddr_port
-# - raddr_ip
-# - raddr_port
-
-
-# -----------------------------------------
-# NET_CLOSED_LISTEN_PORT
-# -----------------------------------------
-# Daha önce açık olan bir LISTEN port artık kapalı.
-
-# Alanlar:
-# - type: "NET_CLOSED_LISTEN_PORT"
-# - timestamp
-# - pid
-# - process_name
-# - laddr_ip
-# - laddr_port
-# - protocol
-
-
-# -----------------------------------------
-# CONNECTION_SUSPICIOUS_REMOTE
-# -----------------------------------------
-# Şüpheli bir uzak IP’ye bağlantı tespit edildi.
-
-# Alanlar:
-# - type: "CONNECTION_SUSPICIOUS_REMOTE"
-# - timestamp
-# - pid
-# - process_name
-# - raddr_ip
-# - raddr_port
-# - reason  (ör: "blacklisted_ip", "malware_c2", "unknown_country")
-
-
-# -----------------------------------------
-# NET_INTERFACE_STATS
-# -----------------------------------------
-# Per-interface trafik snapshot’ı.
-# Bu bir "EVENT" değil, STATE snapshot’tır (Metrics gibi).
-
-# Alanlar:
-# - type: "NET_INTERFACE_STATS"
-# - timestamp
-# - iface
-# - bytes_sent
-# - bytes_recv
-# - packets_sent
-# - packets_recv
-# - errin
-# - errout
-# - dropin
-# - dropout
-
-
-# -----------------------------------------
-# NET_SNAPSHOT
-# -----------------------------------------
-# Collector’ın periyodik tam snapshot’ı.
-# This is STATE, event değil.
-
-# Alanlar:
-# - type: "NET_SNAPSHOT"
-# - timestamp
-# - interfaces:   {...}
-# - connections:  [...]
-
-
-# -----------------------------------------
-# CONNECTION_UNUSUAL_PORT
-# -----------------------------------------
-# İlginç/alışılmadık bir porta outbound bağlantı oluştu (ör: 6667 IRC, 23 Telnet)
-
-# Alanlar:
-# - type: "CONNECTION_UNUSUAL_PORT"
-# - timestamp
-# - pid
-# - process_name
-# - raddr_ip
-# - raddr_port
-# - description  ("rare outbound port")
-
-
-# -----------------------------------------
-# CONNECTION_PORT_SCAN_OUTBOUND
-# -----------------------------------------
-# Aynı hedef IP’ye çok sayıda kısa ömürlü port denemesi yapıldı (port scan belirtisi)
-
-# Alanlar:
-# - type: "CONNECTION_PORT_SCAN_OUTBOUND"
-# - timestamp
-# - pid
-# - process_name
-# - target_ip
-# - ports_tried  (list)
-
-
-# -----------------------------------------
-# CONNECTION_PORT_SCAN_INBOUND
-# -----------------------------------------
-# Sisteme inbound port scan geldi (bir IP çok fazla port denemiş)
-
-# Alanlar:
-# - type: "CONNECTION_PORT_SCAN_INBOUND"
-# - timestamp
-# - source_ip
-# - ports_tried (list)
-
-# ########################## tüm event tipleri,
-
-# ✔ Event-Based
-
-# NET_NEW_CONNECTION
-# NET_CLOSED_CONNECTION
-# NET_NEW_LISTEN_PORT
-# NET_CLOSED_LISTEN_PORT
-# CONNECTION_SUSPICIOUS_REMOTE
-# CONNECTION_UNUSUAL_PORT
-# CONNECTION_PORT_SCAN_OUTBOUND
-# CONNECTION_PORT_SCAN_INBOUND
-
-# ✔ State-Based
-
-# NET_SNAPSHOT
-# NET_INTERFACE_STATS
 # backend/core/collector/network_collector.py
 
 import json
@@ -206,6 +20,12 @@ class NetworkCollector:
 
         curr = self._build_snapshot()
         ts = curr["timestamp"]
+
+        # 🔍 DEBUG: snapshot boyutu
+        logger.debug(
+            f"[NETDEBUG] prev_connections={len(prev.get('connections', []))}, "
+            f"curr_connections={len(curr.get('connections', []))}"
+        )
 
         events = []
 
@@ -233,7 +53,10 @@ class NetworkCollector:
         )
         events.extend(diff_events)
 
-        logger.info(f"[NetworkCollector] step() produced {len(events)} events ({len(diff_events)} diff-events)")
+        logger.info(
+            f"[NetworkCollector] step() produced {len(events)} events "
+            f"({len(diff_events)} diff-events)"
+        )
 
         self._save_state(curr)
         return events
@@ -333,6 +156,13 @@ class NetworkCollector:
         prev_keys = set(prev_map.keys())
         curr_keys = set(curr_map.keys())
 
+        # 🔍 DEBUG: diff summary
+        logger.debug(
+            f"[NETDEBUG][DIFF] prev={len(prev)}, curr={len(curr)} | "
+            f"prev_keys={len(prev_keys)}, curr_keys={len(curr_keys)}"
+        )
+
+        # NEW events
         for k in curr_keys - prev_keys:
             c = curr_map[k]
 
@@ -343,13 +173,21 @@ class NetworkCollector:
                     **c
                 })
                 logger.info(f"[NetworkCollector] New LISTEN port opened: {c.get('laddr_port')}")
+
             elif c["raddr_ip"]:
+                logger.debug(
+                    f"[NETDEBUG][NEW] pid={c.get('pid')} "
+                    f"{c.get('laddr_ip')}:{c.get('laddr_port')} -> "
+                    f"{c.get('raddr_ip')}:{c.get('raddr_port')}"
+                )
+
                 events.append({
                     "type": "NET_NEW_CONNECTION",
                     "timestamp": ts,
                     **c
                 })
 
+        # CLOSED events
         for k in prev_keys - curr_keys:
             c = prev_map[k]
 
@@ -360,14 +198,29 @@ class NetworkCollector:
                     **c
                 })
                 logger.info(f"[NetworkCollector] LISTEN port closed: {c.get('laddr_port')}")
+
             elif c["raddr_ip"]:
+                logger.debug(
+                    f"[NETDEBUG][CLOSED] pid={c.get('pid')} "
+                    f"{c.get('laddr_ip')}:{c.get('laddr_port')} -> "
+                    f"{c.get('raddr_ip')}:{c.get('raddr_port')}"
+                )
+
                 events.append({
                     "type": "NET_CLOSED_CONNECTION",
                     "timestamp": ts,
                     **c
                 })
 
-        logger.debug(f"[NetworkCollector] Diff-engine produced {len(events)} events")
+        # Detailed diff output
+        logger.debug(
+            f"[NETDEBUG][DIFF] produced={len(events)} | "
+            f"new={len([e for e in events if e['type']=='NET_NEW_CONNECTION'])}, "
+            f"closed={len([e for e in events if e['type']=='NET_CLOSED_CONNECTION'])}, "
+            f"listen_new={len([e for e in events if e['type']=='NET_NEW_LISTEN_PORT'])}, "
+            f"listen_closed={len([e for e in events if e['type']=='NET_CLOSED_LISTEN_PORT'])}"
+        )
+
         return events
 
     # ============================================================
@@ -391,18 +244,22 @@ class NetworkCollector:
             os.makedirs(os.path.dirname(self.state_file), exist_ok=True)
             with open(self.state_file, "w") as f:
                 json.dump(snap, f)
-            logger.debug("[NetworkCollector] State saved")
+
+            logger.debug(
+                f"[NETDEBUG] State saved: {self.state_file} | "
+                f"connections={len(snap.get('connections', []))}"
+            )
+
         except Exception as e:
             logger.error(f"[NetworkCollector] Failed to save state: {e}")
             pass
+        
+    # TEST
+    if __name__ == "__main__":
+        nc = NetworkCollector()
+        events = nc.step()
 
-
-# TEST
-if __name__ == "__main__":
-    nc = NetworkCollector()
-    events = nc.step()
-
-    print("\n===== NETWORK COLLECTOR TEST OUTPUT =====\n")
-    for e in events:
-        print(json.dumps(e, indent=2))
-        print("-" * 60)
+        print("\n===== NETWORK COLLECTOR TEST OUTPUT =====\n")
+        for e in events:
+            print(json.dumps(e, indent=2))
+            print("-" * 60)
