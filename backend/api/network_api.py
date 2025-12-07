@@ -40,6 +40,8 @@ def get_network_events():
 
         q = q.order_by(NetworkEventModel.timestamp.desc())
         rows = [r.to_dict() for r in q.all()]
+        
+        print("Fetched network events:", len(rows))
 
         return success(data=rows)
 
