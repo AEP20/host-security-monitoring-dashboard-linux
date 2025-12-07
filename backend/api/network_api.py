@@ -83,6 +83,11 @@ def active_network_connections():
         results = []
 
         for c in conns:
+            
+            if c.status == psutil.CONN_TIME_WAIT:
+                continue
+    
+    
             l_ip = getattr(c.laddr, "ip", None) if c.laddr else None
             l_port = getattr(c.laddr, "port", None) if c.laddr else None
             r_ip = getattr(c.raddr, "ip", None) if c.raddr else None
