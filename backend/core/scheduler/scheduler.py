@@ -31,8 +31,8 @@ class Scheduler:
     """
 
     METRICS_INTERVAL = 60
-    PROCESS_INTERVAL = 10
-    NETWORK_INTERVAL = 10
+    PROCESS_INTERVAL = 15
+    NETWORK_INTERVAL = 15
     LOG_INTERVAL = 3
 
     def __init__(self):
@@ -146,13 +146,12 @@ class Scheduler:
                 daemon=False
             ),
 
-            # Network loop ileride aktif olur
-            # threading.Thread(
-            #     target=self._run_collector_loop,
-            #     args=(self.network_collector, self.NETWORK_INTERVAL, "NetworkCollector"),
-            #     name="NetworkThread",
-            #     daemon=False
-            # ),
+            threading.Thread(
+                target=self._run_collector_loop,
+                args=(self.network_collector, self.NETWORK_INTERVAL, "NetworkCollector"),
+                name="NetworkThread",
+                daemon=False
+            ),
 
             threading.Thread(target=self._run_log_collector, name="LogThread", daemon=False),
             threading.Thread(target=self._run_health_loop, name="HealthThread", daemon=False),
