@@ -1,7 +1,8 @@
-#config modal
+# config model
 
 from sqlalchemy import Column, Integer, String, DateTime, Text
 from backend.models.base import Base, current_time
+
 
 class ConfigCheckModel(Base):
     __tablename__ = "config_checks"
@@ -15,6 +16,23 @@ class ConfigCheckModel(Base):
 
     hostname = Column(String(100), nullable=True)
     details = Column(Text, nullable=True)
+
+    # ---------------------------------------------------
+    #            STATIC CREATE METHOD
+    # ---------------------------------------------------
+    @staticmethod
+    def create(event: dict, session):
+        obj = ConfigCheckModel(
+            check_name=event.get("check_name"),
+            status=event.get("status"),
+            severity=event.get("severity"),
+            hostname=event.get("hostname"),
+            details=event.get("details"),
+        )
+
+        session.add(obj)
+        return obj
+
 
     def to_dict(self):
         return {

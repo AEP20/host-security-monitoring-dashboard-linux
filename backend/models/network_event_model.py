@@ -1,8 +1,7 @@
 # TO:DO network event model which will data provided from the network collector
-# network collector (events will be created in here) -> event_dispatcher (in the event_dispatcher events will ve wrote to the db)from sqlalchemy import Column, Integer, String, DateTime, Text, JSON
+# network collector (events will be created in here) -> event_dispatcher (in the event_dispatcher events will ve wrote to the db)
 from sqlalchemy import Column, Integer, String, DateTime, Text, JSON
 from backend.models.base import Base, current_time
-from backend.database import SessionLocal
 
 
 class NetworkEventModel(Base):
@@ -66,9 +65,7 @@ class NetworkEventModel(Base):
     #            STATIC CREATE METHOD
     # ---------------------------------------------------
     @staticmethod
-    def create(event: dict):
-        db = SessionLocal()
-
+    def create(event: dict, session):
         obj = NetworkEventModel(
             event_type=event.get("type"),
             pid=event.get("pid"),
@@ -86,11 +83,7 @@ class NetworkEventModel(Base):
             raw_event=event
         )
 
-        db.add(obj)
-        db.commit()
-        db.refresh(obj)
-        db.close()
-
+        session.add(obj)
         return obj
 
 

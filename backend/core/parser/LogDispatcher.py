@@ -17,8 +17,7 @@ from backend.core.parser.kernel_parser import KernelParser
 from backend.core.parser.sys_parser import SysParser
 from backend.core.parser.ufw_parser import UfwParser
 
-from backend.models.log_model import LogEventModel
-from backend.database import SessionLocal
+from backend.core.storage.services import db_writer
 
 
 class LogDispatcher:
@@ -62,33 +61,13 @@ class LogDispatcher:
     # DB write 
 
     def save_to_db(self, event: dict):
-
-        session = SessionLocal()
+        """
+        DB write işlemi artık doğrudan yapılmaz,
+        event DBWriter queue'suna bırakılır.
+        """
 
         try:
-            record = LogEventModel(
-                timestamp=event.get("timestamp"),
-                log_source=event.get("log_source"),
-                event_type=event.get("event_type"),
-                category=event.get("category"),
-                severity=event.get("severity"),
-
-                raw_log=event.get("raw"),
-                message=event.get("message"),
-
-                user=event.get("user"),
-                ip_address=event.get("ip"),
-                process_name=event.get("process"),
-
-                rule_triggered=None,
-                extra_data=None,
-            )
-
-            session.add(record)
-            session.commit()
-
-        except Exception as e:
-            session.rollback()
-
-        finally:
-            session.close()
+            event["type"] = "LOG_EVENT"
+            db_writer.enqueue(event)
+        except Exception:
+            pass

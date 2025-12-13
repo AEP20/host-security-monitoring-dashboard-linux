@@ -11,6 +11,7 @@ from backend.models.process_event_model import ProcessEventModel
 from backend.models.alert_model import AlertModel
 
 from backend.logger import logger
+from backend.core.storage.services import db_writer
 
 
 class EventDispatcher:
@@ -51,33 +52,33 @@ class EventDispatcher:
     # HANDLERS
     # -------------------------
     def _handle_process(self, event):
-        logger.debug("[DISPATCH][PROCESS] Saving process event")
+        logger.debug("[DISPATCH][PROCESS] Enqueue process event")
         try:
-            result = ProcessEventModel.create(event)
-            logger.debug("[DISPATCH][PROCESS] Saved successfully")
-            return result
+            db_writer.enqueue(event)
+            logger.debug("[DISPATCH][PROCESS] Enqueued successfully")
+            return event
         except Exception as e:
             logger.error(f"[DISPATCH][PROCESS] Failed: {e}")
             return None
 
 
     def _handle_network(self, event):
-        logger.debug(f"[DISPATCH][NETWORK] Handling network event: {event.get('type')}")
+        logger.debug(f"[DISPATCH][NETWORK] Enqueue network event: {event.get('type')}")
         try:
-            result = NetworkEventModel.create(event)
-            logger.debug("[DISPATCH][NETWORK] Saved successfully")
-            return result
+            db_writer.enqueue(event)
+            logger.debug("[DISPATCH][NETWORK] Enqueued successfully")
+            return event
         except Exception as e:
             logger.error(f"[DISPATCH][NETWORK] Failed: {e}")
             return None
 
 
     def _handle_metric(self, event):
-        logger.debug("[DISPATCH][METRIC] Saving metric snapshot")
+        logger.debug("[DISPATCH][METRIC] Enqueue metric snapshot")
         try:
-            result = save_metric_snapshot(event)
-            logger.info("[DISPATCH][METRIC] Metric snapshot saved")
-            return result
+            db_writer.enqueue(event)
+            logger.info("[DISPATCH][METRIC] Enqueued successfully")
+            return event
         except Exception as e:
             logger.error(f"[DISPATCH][METRIC] Failed: {e}")
             return None

@@ -6,9 +6,17 @@ from backend.api.metrics_api import metrics_api
 from backend.api.network_api import network_api
 from backend.api.logs_api import logs_api
 from backend.api.processes_api import process_api as processes_api
+
 from backend.core.scheduler.scheduler import Scheduler
+from backend.core.storage.db_writer import DBWriter
 
 from backend.logger import logger
+
+# -------------------------------------------------
+# SINGLETON SERVICES
+# -------------------------------------------------
+db_writer = DBWriter()
+scheduler = Scheduler()
 
 
 def create_app():
@@ -22,6 +30,9 @@ def create_app():
 
     app.config.from_pyfile("config.py")
 
+    # -------------------------------------------------
+    # BLUEPRINTS
+    # -------------------------------------------------
     app.register_blueprint(system_api, url_prefix="/api/system")
     app.register_blueprint(metrics_api, url_prefix="/api/metrics")
     app.register_blueprint(logs_api, url_prefix="/api/logs")
@@ -30,25 +41,55 @@ def create_app():
 
     logger.debug("[APP] Blueprints registered")
 
+    # -------------------------------------------------
+    # DATABASE INIT
+    # -------------------------------------------------
     init_db()
     logger.info("[APP] Database initialized")
 
-    scheduler = Scheduler()
+    # -------------------------------------------------
+    # START BACKGROUND SERVICES
+    # -------------------------------------------------
+    db_writer.start()
+    logger.info("[APP] DBWriter started")
+
     scheduler.start()
     logger.info("[APP] Scheduler started")
 
+    # -------------------------------------------------
+    # SHUTDOWN HANDLER
+    # -------------------------------------------------
+    # @app.teardown_appcontext
+    def shutdown(exception=None):
+        logger.info("[APP] Shutting down background services")
+
+        try:
+            scheduler.stop()
+            logger.info("[APP] Scheduler stopped")
+        except Exception:
+            logger.exception("[APP] Failed to stop scheduler")
+
+        try:
+            db_writer.stop()
+            logger.info("[APP] DBWriter stopped")
+        except Exception:
+            logger.exception("[APP] Failed to stop DBWriter")
+
+    # -------------------------------------------------
+    # FRONTEND ROUTES
+    # -------------------------------------------------
     @app.route("/")
     def index():
         return render_template("dashboard.html")
-    
+
     @app.route("/logs")
     def logs_page():
         return render_template("logs.html")
-    
+
     @app.route("/processes")
     def processes_page():
         return render_template("processes.html")
-    
+
     @app.route("/network")
     def network_page():
         return render_template("network.html")

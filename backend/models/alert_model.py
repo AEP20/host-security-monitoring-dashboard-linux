@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey
 from backend.models.base import Base, current_time
 
+
 class AlertModel(Base):
     __tablename__ = "alerts"
 
@@ -18,6 +19,22 @@ class AlertModel(Base):
 
     # Hangi log event’e bağlı (optional)
     log_event_id = Column(Integer, ForeignKey("log_events.id"), nullable=True)
+
+    # ---------------------------------------------------
+    #            STATIC CREATE METHOD
+    # ---------------------------------------------------
+    @staticmethod
+    def create(event: dict, session):
+        obj = AlertModel(
+            rule_name=event.get("rule_name"),
+            severity=event.get("severity"),
+            message=event.get("message"),
+            log_event_id=event.get("log_event_id"),
+        )
+
+        session.add(obj)
+        return obj
+
 
     def to_dict(self):
         return {

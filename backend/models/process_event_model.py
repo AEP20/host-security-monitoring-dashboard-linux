@@ -1,6 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, Text, JSON
 from backend.models.base import Base, current_time
-from backend.database import SessionLocal
 
 
 class ProcessEventModel(Base):
@@ -70,9 +69,7 @@ class ProcessEventModel(Base):
     #            STATIC CREATE METHOD
     # ---------------------------------------------------
     @staticmethod
-    def create(event: dict):
-        db = SessionLocal()
-
+    def create(event: dict, session):
         obj = ProcessEventModel(
             event_type=event.get("type"),
             pid=event.get("pid"),
@@ -95,11 +92,7 @@ class ProcessEventModel(Base):
             raw_event=event
         )
 
-        db.add(obj)
-        db.commit()
-        db.refresh(obj)
-        db.close()
-
+        session.add(obj)
         return obj
 
 

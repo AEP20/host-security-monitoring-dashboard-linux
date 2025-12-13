@@ -1,7 +1,8 @@
-#log modal
+# log model
 
 from sqlalchemy import Column, Integer, String, DateTime, Text
 from backend.models.base import Base, current_time
+
 
 class LogEventModel(Base):
     __tablename__ = "log_events"
@@ -36,6 +37,30 @@ class LogEventModel(Base):
 
     # Ek alanlar (JSON string)
     extra_data = Column(Text, nullable=True)
+
+    # ---------------------------------------------------
+    #            STATIC CREATE METHOD
+    # ---------------------------------------------------
+    @staticmethod
+    def create(event: dict, session):
+        obj = LogEventModel(
+            timestamp=event.get("timestamp"),
+            log_source=event.get("log_source"),
+            event_type=event.get("event_type"),
+            category=event.get("category"),
+            severity=event.get("severity"),
+            raw_log=event.get("raw"),
+            message=event.get("message"),
+            user=event.get("user"),
+            ip_address=event.get("ip"),
+            process_name=event.get("process"),
+            rule_triggered=None,
+            extra_data=event.get("extra_data"),
+        )
+
+        session.add(obj)
+        return obj
+
 
     def to_dict(self):
         return {
