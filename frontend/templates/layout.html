@@ -4,9 +4,10 @@
     <meta charset="UTF-8" />
     <title>HIDS</title>
 
-    <!-- Global styles -->
+    <!-- ================= GLOBAL STYLES ================= -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 
+    <!-- ================= PAGE-SPECIFIC STYLES ================= -->
     {% block extra_styles %}{% endblock %}
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -52,7 +53,7 @@
     <!-- ================= MAIN ================= -->
     <main class="main-content">
 
-        <!-- TOP BAR -->
+        <!-- ================= TOP BAR ================= -->
         <header class="topbar">
             <div class="topbar-left">
                 <h1>{% block page_title %}{% endblock %}</h1>
@@ -64,7 +65,7 @@
             </div>
         </header>
 
-        <!-- PAGE CONTENT -->
+        <!-- ================= PAGE CONTENT ================= -->
         <section class="content">
             {% block content %}{% endblock %}
         </section>
@@ -72,10 +73,7 @@
     </main>
 </div>
 
-<!-- ================= SCRIPTS ================= -->
-<!-- ❗ SADECE ORTAK / GLOBAL JS (gerekirse) -->
-<!-- <script src="{{ url_for('static', filename='js/main.js') }}"></script> -->
-
+<!-- ================= PAGE SCRIPTS ================= -->
 {% block scripts %}{% endblock %}
 
 </body>
