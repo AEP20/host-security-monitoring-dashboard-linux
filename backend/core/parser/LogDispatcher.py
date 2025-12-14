@@ -19,6 +19,8 @@ from backend.core.parser.ufw_parser import UfwParser
 
 from backend.core.storage import services
 
+from backend.logger import logger
+
 class LogDispatcher:
 
     def __init__(self):
@@ -67,6 +69,7 @@ class LogDispatcher:
 
         try:
             event["type"] = "LOG_EVENT"
+            logger.debug(f"[LogDispatcher] Enqueuing event to DBWriter: {event}")
             services.db_writer.enqueue(event)
         except Exception:
             pass
