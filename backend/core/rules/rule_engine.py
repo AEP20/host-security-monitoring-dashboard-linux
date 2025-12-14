@@ -29,7 +29,12 @@ class RuleEngine:
 
     def process(self, event: Dict[str, Any]) -> List[Dict[str, Any]]:
         alerts: List[Dict[str, Any]] = []
-        etype = event.get("type", "")
+        etype = (
+            event.get("event_type")
+            if event.get("type") == "LOG_EVENT"
+            else event.get("type", "")
+        )
+
 
         # ---------------------------
         # STATELESS

@@ -39,7 +39,7 @@ class LogDispatcher:
         3) Event’i DB’ye kaydet
         4) Rule engine’e döndür
         """
-
+        
         parser = self.parsers.get(source)
         if not parser:
             return None
@@ -50,6 +50,7 @@ class LogDispatcher:
         try:
             event = parser.parse(line)
 
+            event["type"] = "LOG_EVENT"
             self.save_to_db(event)
 
             return event
@@ -66,7 +67,6 @@ class LogDispatcher:
         """
 
         try:
-            event["type"] = "LOG_EVENT"
             services.db_writer.enqueue(event)
         except Exception:
             pass
