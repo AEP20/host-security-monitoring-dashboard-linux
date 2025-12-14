@@ -1,26 +1,63 @@
-# core/rules/rule_engine.py
+# backend/core/rules/rule_engine.py
+from typing import Dict, List, Any
+
 from backend.logger import logger
+from backend.core.rules.base import BaseRule, StatelessRule, StatefulRule
+
 
 class RuleEngine:
-    def __init__(self, rules: list):
-        self.rules = rules
+    def __init__(self, rules: List[BaseRule], context: Any = None):
+        self.context = context
+        self.stateless_rules: List[StatelessRule] = []
+        self.stateful_rules: List[StatefulRule] = []
 
-    def process(self, event: dict) -> list:
-        alerts = []
+        for rule in rules:
+            if isinstance(rule, StatelessRule):
+                self.stateless_rules.append(rule)
+            elif isinstance(rule, StatefulRule):
+                self.stateful_rules.append(rule)
+            else:
+                logger.warning(
+                    f"[RULE_ENGINE] Rule {getattr(rule, 'rule_id', '?')} has unknown base class"
+                )
 
+        logger.info(
+            f"[RULE_ENGINE] Loaded "
+            f"stateless={len(self.stateless_rules)} "
+            f"stateful={len(self.stateful_rules)}"
+        )
+
+    def process(self, event: Dict[str, Any]) -> List[Dict[str, Any]]:
+        alerts: List[Dict[str, Any]] = []
         etype = event.get("type", "")
-        logger.debug(f"[RULE_ENGINE] Processing event {etype}")
 
-        for rule in self.rules:
-            if not etype.startswith(rule.event_prefix):
+        # ---------------------------
+        # STATELESS
+        # ---------------------------
+        for rule in self.stateless_rules:
+            if not rule.supports(etype):
                 continue
-
             try:
                 if rule.match(event):
                     alert = rule.build_alert(event)
                     alerts.append(alert)
-                    logger.info(f"[RULE_ENGINE] Rule matched: {rule.rule_id}")
+                    logger.info(f"[RULE_ENGINE] Stateless matched: {rule.rule_id}")
             except Exception as e:
-                logger.error(f"[RULE_ENGINE] Rule {rule.rule_id} failed: {e}")
+                logger.exception(
+                    f"[RULE_ENGINE] Stateless rule failed {rule.rule_id}: {e}"
+                )
+
+        # STATEFUL
+        for rule in self.stateful_rules:
+            if not rule.supports(etype):
+                continue
+            try:
+                rule.consume(event, context=self.context)
+                produced = rule.evaluate(self.context)
+                alerts.extend(produced)
+            except Exception as e:
+                logger.exception(
+                    f"[RULE_ENGINE] Stateful rule failed {rule.rule_id}: {e}"
+                )
 
         return alerts

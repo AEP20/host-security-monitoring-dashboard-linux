@@ -1,4 +1,4 @@
-# 6.2 core/parser – Logları anlamlı hale getiren katman
+# 6.2 core/parser/auth_parser.py
 
 # Bu dosyaların amacı:
 # Ham log satırlarını parse edip “event” nesneleri haline getirmek.
