@@ -5,7 +5,7 @@
 from backend.models.metric_model import MetricModel
 # from models.alert_model import AlertModel
 from backend.models.network_event_model import NetworkEventModel
-from backend.database import save_metric_snapshot
+# from backend.database import save_metric_snapshot
 
 from backend.models.process_event_model import ProcessEventModel
 from backend.models.alert_model import AlertModel
