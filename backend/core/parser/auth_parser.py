@@ -21,6 +21,7 @@
 # SSH brute force, root login, sudo misuse gibi kurallar bu event’leri kullanır.
 
 from datetime import datetime
+from backend.core.utils.timestamp import parse_timestamp
 
 from backend.core.utils.regex_patterns import (
     AUTH_PID,
@@ -89,31 +90,8 @@ class AuthParser:
     # INTERNAL HELPERS
     # ---------------------------
 
-    def extract_timestamp(self, line: str):
-        try:
-            # 1️⃣ ISO-8601 (journald / modern syslog)
-            if line and line[0].isdigit():
-                ts_str = line.split()[0]
-                return datetime.fromisoformat(ts_str)
-
-            # 2️⃣ Klasik auth.log (Dec  4 12:32:10)
-            if not AUTH_TIMESTAMP.match(line):
-                return None
-
-            month_str = line[0:3]
-            day = int(line[4:6])
-            time_str = line[7:15]
-
-            month = self.MONTHS.get(month_str)
-            year = datetime.now().year
-
-            return datetime.strptime(
-                f"{year}-{month}-{day} {time_str}",
-                "%Y-%m-%d %H:%M:%S"
-            )
-
-        except Exception:
-            return None
+    def extract_timestamp(self, line):
+        return parse_timestamp(line)
 
     def extract_pid(self, line: str):
         m = AUTH_PID.search(line)

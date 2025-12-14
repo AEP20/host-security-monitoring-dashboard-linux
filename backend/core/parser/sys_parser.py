@@ -26,6 +26,7 @@ from backend.core.utils.regex_patterns import (
     SYS_WARNING,
     SYS_ERROR
 )
+from backend.core.utils.timestamp import parse_timestamp
 
 class SysParser:
     """
@@ -73,32 +74,8 @@ class SysParser:
     # HELPERS
     # ---------------------------
 
-    def extract_timestamp(self, line: str):
-        """Dec  4 12:32:10 formatı"""
-        m = SYS_TIMESTAMP.match(line)
-        if not m:
-            return None
-
-        try:
-            month_str = line[0:3]
-            day = int(line[4:6])
-            time_str = line[7:15]
-
-            MONTHS = {
-                "Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4,
-                "May": 5, "Jun": 6, "Jul": 7, "Aug": 8,
-                "Sep": 9, "Oct": 10, "Nov": 11, "Dec": 12
-            }
-
-            month = MONTHS[month_str]
-            year = datetime.now().year
-
-            return datetime.strptime(
-                f"{year}-{month}-{day} {time_str}",
-                "%Y-%m-%d %H:%M:%S"
-            )
-        except:
-            return None
+    def extract_timestamp(self, line: str): 
+        return parse_timestamp(line)
 
     def extract_service_name(self, line: str):
         """systemd veya service restart satırlarında service adını yakala."""

@@ -8,7 +8,7 @@ from backend.core.utils.regex_patterns import (
     DPKG_ACTIONS
 )
 from backend.core.utils.hacking_tools import HACKING_TOOLS
-
+from backend.core.utils.timestamp import parse_timestamp
 
 class DpkgParser:
 
@@ -56,10 +56,7 @@ class DpkgParser:
     # Internal Helpers
 
     def extract_timestamp(self, line):
-        m = TIMESTAMP.match(line)
-        if not m:
-            return None
-        return datetime.strptime(line[:19], "%Y-%m-%d %H:%M:%S")
+        return parse_timestamp(line)
 
     def extract_action(self, line):
         for action in self.VALID_ACTIONS:
