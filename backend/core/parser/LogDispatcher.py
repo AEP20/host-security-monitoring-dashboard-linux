@@ -17,8 +17,7 @@ from backend.core.parser.kernel_parser import KernelParser
 from backend.core.parser.sys_parser import SysParser
 from backend.core.parser.ufw_parser import UfwParser
 
-from backend.core.storage.services import db_writer
-
+from backend.core.storage import services
 
 class LogDispatcher:
 
@@ -68,6 +67,6 @@ class LogDispatcher:
 
         try:
             event["type"] = "LOG_EVENT"
-            db_writer.enqueue(event)
+            services.db_writer.enqueue(event)
         except Exception:
             pass

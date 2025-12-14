@@ -11,7 +11,7 @@ from backend.models.process_event_model import ProcessEventModel
 from backend.models.alert_model import AlertModel
 
 from backend.logger import logger
-from backend.core.storage.services import db_writer
+from backend.core.storage import services
 
 
 class EventDispatcher:
@@ -54,7 +54,7 @@ class EventDispatcher:
     def _handle_process(self, event):
         logger.debug("[DISPATCH][PROCESS] Enqueue process event")
         try:
-            db_writer.enqueue(event)
+            services.db_writer.enqueue(event)
             logger.debug("[DISPATCH][PROCESS] Enqueued successfully")
             return event
         except Exception as e:
@@ -65,7 +65,7 @@ class EventDispatcher:
     def _handle_network(self, event):
         logger.debug(f"[DISPATCH][NETWORK] Enqueue network event: {event.get('type')}")
         try:
-            db_writer.enqueue(event)
+            services.db_writer.enqueue(event)
             logger.debug("[DISPATCH][NETWORK] Enqueued successfully")
             return event
         except Exception as e:
@@ -76,7 +76,7 @@ class EventDispatcher:
     def _handle_metric(self, event):
         logger.debug("[DISPATCH][METRIC] Enqueue metric snapshot")
         try:
-            db_writer.enqueue(event)
+            services.db_writer.enqueue(event)
             logger.info("[DISPATCH][METRIC] Enqueued successfully")
             return event
         except Exception as e:
