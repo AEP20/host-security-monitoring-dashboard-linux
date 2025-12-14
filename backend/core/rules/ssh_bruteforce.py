@@ -17,8 +17,7 @@ class SSHBruteforceRule(StatefulRule):
     description = "SSH brute force attack detected"
     severity = "HIGH"
 
-    # RuleEngine supports() için:
-    # event_type üzerinden çalışıyoruz
+    # RuleEngine supports() için
     event_prefix = "FAILED_"
 
     # correlation config
@@ -29,13 +28,6 @@ class SSHBruteforceRule(StatefulRule):
     # HELPERS
     # --------------------------------------------------
     def _is_relevant(self, event: Dict[str, Any]) -> bool:
-        """
-        Bu rule SADECE:
-        - LOG_EVENT
-        - AUTH kategorisi
-        - FAILED_LOGIN event_type
-        için çalışır
-        """
         return (
             event.get("type") == "LOG_EVENT"
             and event.get("category") == "AUTH"
@@ -45,19 +37,12 @@ class SSHBruteforceRule(StatefulRule):
         )
 
     def _build_key(self, event: Dict[str, Any]) -> Tuple[str, str]:
-        """
-        Korelasyon anahtarı:
-        aynı IP + aynı user
-        """
         return (
             event.get("ip"),
             event.get("user"),
         )
 
     def _build_event_ref(self, event: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        RAM'de tutulacak minimal event referansı
-        """
         return {
             "event_type": event.get("event_type"),
             "timestamp": event.get("timestamp"),
@@ -82,28 +67,37 @@ class SSHBruteforceRule(StatefulRule):
             window_seconds=self.window_seconds,
         )
 
+        # 🔹 sadece gerçekten consume edilen event için
         logger.debug(
-            f"[SSH_BRUTE] Consumed FAILED_LOGIN ip={key[0]} user={key[1]}"
+            f"[SSH_BRUTE][CONSUME] ip={key[0]} user={key[1]}"
         )
 
     def evaluate(self, context) -> List[Dict[str, Any]]:
-        """
-        Her consume sonrası çağrılır.
-        Threshold aşılırsa alert üretir.
-        """
         alerts: List[Dict[str, Any]] = []
 
-        rule_bucket = context._store.get(self.rule_id, {})
+        rule_bucket = context._store.get(self.rule_id)
         if not rule_bucket:
             return alerts
 
         for key, events in list(rule_bucket.items()):
             count = len(events)
+            ip, user = key
+
+            # 🔹 threshold yaklaşımı (spam yok)
+            if count == self.threshold - 1:
+                logger.debug(
+                    f"[SSH_BRUTE][NEAR_THRESHOLD] ip={ip} user={user} "
+                    f"count={count}/{self.threshold}"
+                )
 
             if count < self.threshold:
                 continue
 
-            ip, user = key
+            # 🔹 alert anı
+            logger.info(
+                f"[SSH_BRUTE][TRIGGER] ip={ip} user={user} "
+                f"count={count}"
+            )
 
             alert = self.build_alert_base(
                 alert_type="ALERT_SSH_BRUTEFORCE",
@@ -122,12 +116,11 @@ class SSHBruteforceRule(StatefulRule):
 
             alerts.append(alert)
 
-            # Alert üretildikten sonra state temizlenir
-            # (alert spam ve RAM şişmesini önler)
+            # state temizlenir
             context.clear_key(rule_id=self.rule_id, key=key)
 
-            logger.info(
-                f"[SSH_BRUTE] Alert generated ip={ip} user={user}"
+            logger.debug(
+                f"[SSH_BRUTE][STATE_CLEARED] ip={ip} user={user}"
             )
 
         return alerts
