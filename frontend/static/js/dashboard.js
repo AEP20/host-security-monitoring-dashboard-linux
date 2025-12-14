@@ -1,5 +1,3 @@
-if (!document.getElementById("metric-time-card")) return;
-
 // ====================== FETCH SYSTEM STATUS ======================
 async function fetchSystemStatus() {
     console.log("[DEBUG][fetchSystemStatus] Called");
