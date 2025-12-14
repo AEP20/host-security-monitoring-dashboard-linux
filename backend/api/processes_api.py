@@ -7,14 +7,21 @@ import psutil
 
 process_api = Blueprint("process_api", __name__)
 
-
 # ======================================================
 # GET /api/process/events → tüm event geçmişi
 # ======================================================
 @process_api.get("/events")
 def get_process_events():
-    session = SessionLocal()
+    logger.debug("[API][PROCESS_EVENTS] Request received")
+
+    start_ts = time.time()
+    session = None
+
     try:
+        logger.debug("[API][PROCESS_EVENTS] Creating DB session")
+        session = SessionLocal()
+
+        logger.debug("[API][PROCESS_EVENTS] Building query")
         q = session.query(ProcessEventModel)
 
         # filtreler
@@ -22,22 +29,37 @@ def get_process_events():
         pid = request.args.get("pid")
 
         if event_type:
+            logger.debug(f"[API][PROCESS_EVENTS] Filter type={event_type}")
             q = q.filter(ProcessEventModel.event_type == event_type)
 
         if pid:
+            logger.debug(f"[API][PROCESS_EVENTS] Filter pid={pid}")
             q = q.filter(ProcessEventModel.pid == int(pid))
 
+        logger.debug("[API][PROCESS_EVENTS] Ordering query")
         q = q.order_by(ProcessEventModel.timestamp.desc())
-        rows = [r.to_dict() for r in q.all()]
+
+        logger.debug("[API][PROCESS_EVENTS] Executing query (q.all())")
+        rows_raw = q.all()   # 👈 MUHTEMEL KİLİTLENEN YER
+
+        logger.debug(f"[API][PROCESS_EVENTS] Query returned {len(rows_raw)} rows")
+
+        logger.debug("[API][PROCESS_EVENTS] Serializing rows")
+        rows = [r.to_dict() for r in rows_raw]
+
+        elapsed = round(time.time() - start_ts, 3)
+        logger.info(f"[API][PROCESS_EVENTS] OK ({elapsed}s) rows={len(rows)}")
 
         return success(data=rows)
 
     except Exception as e:
-        logger.exception("Failed to fetch process events")
+        logger.exception("[API][PROCESS_EVENTS] Failed")
         return error("Failed to load process events", exception=e)
 
     finally:
-        session.close()
+        if session:
+            logger.debug("[API][PROCESS_EVENTS] Closing DB session")
+            session.close()
 
 
 # ======================================================
