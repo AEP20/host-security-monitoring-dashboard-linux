@@ -1,21 +1,26 @@
-# #parsed event → rule_engine → triggered rule → alert_model.save()
+# core/rules/rule_engine.py
+from backend.logger import logger
 
-# 📁 rule_engine.py
-# Bu dosya orkestratör.
-# Görevleri:
-# Tüm event’leri (auth, sys, kernel, dpkg, process, port) input olarak alır
-# Her kural modülünü tek tek çağırır:
-# ssh_bruteforce.check(events)
-# root_login.check(events)
-# suspicious_process.check(process_list)
-# Her kural bir şey bulduğunda Alert nesnesi döner
-# Bu alert’ler:
-# DB’ye kaydedilir (AlertModel)
-# Belki loglanır
-# Rule engine’in ana fonksiyonu gibi bir şey hayal et:
+class RuleEngine:
+    def __init__(self, rules: list):
+        self.rules = rules
 
-# def run_all_rules(parsed_events, system_state):
-#     alerts = []
-#     for rule in RULES:
-#         alerts.extend(rule.check(parsed_events, system_state))
-#     return alerts
+    def process(self, event: dict) -> list:
+        alerts = []
+
+        etype = event.get("type", "")
+        logger.debug(f"[RULE_ENGINE] Processing event {etype}")
+
+        for rule in self.rules:
+            if not etype.startswith(rule.event_prefix):
+                continue
+
+            try:
+                if rule.match(event):
+                    alert = rule.build_alert(event)
+                    alerts.append(alert)
+                    logger.info(f"[RULE_ENGINE] Rule matched: {rule.rule_id}")
+            except Exception as e:
+                logger.error(f"[RULE_ENGINE] Rule {rule.rule_id} failed: {e}")
+
+        return alerts
