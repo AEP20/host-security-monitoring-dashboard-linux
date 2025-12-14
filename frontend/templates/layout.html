@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>HIDS Dashboard</title>
+    <title>HIDS</title>
 
+    <!-- Global styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 
     {% block extra_styles %}{% endblock %}
 
@@ -16,7 +16,7 @@
 
 <div class="dashboard-container">
 
-    <!-- SIDEBAR-->
+    <!-- ================= SIDEBAR ================= -->
     <aside class="sidebar">
         <div class="sidebar-header">
             <img src="{{ url_for('static', filename='img/logo.png') }}" class="logo">
@@ -25,7 +25,7 @@
 
         <nav class="sidebar-nav">
             <a href="/" class="nav-item {% if active == 'dashboard' %}active{% endif %}">
-                 Dashboard
+                Dashboard
             </a>
             <a href="/logs" class="nav-item {% if active == 'logs' %}active{% endif %}">
                 Logs
@@ -49,9 +49,10 @@
         </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
+    <!-- ================= MAIN ================= -->
     <main class="main-content">
 
+        <!-- TOP BAR -->
         <header class="topbar">
             <div class="topbar-left">
                 <h1>{% block page_title %}{% endblock %}</h1>
@@ -63,7 +64,7 @@
             </div>
         </header>
 
-
+        <!-- PAGE CONTENT -->
         <section class="content">
             {% block content %}{% endblock %}
         </section>
@@ -71,10 +72,9 @@
     </main>
 </div>
 
-<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
-<script src="{{ url_for('static', filename='js/logs.js') }}"></script>
-<script src="{{ url_for('static', filename='js/config.js') }}"></script>
-<script src="{{ url_for('static', filename='js/alerts.js') }}"></script>
+<!-- ================= SCRIPTS ================= -->
+<!-- ❗ SADECE ORTAK / GLOBAL JS (gerekirse) -->
+<!-- <script src="{{ url_for('static', filename='js/main.js') }}"></script> -->
 
 {% block scripts %}{% endblock %}
 

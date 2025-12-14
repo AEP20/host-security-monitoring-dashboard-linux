@@ -1,16 +1,28 @@
 document.addEventListener("DOMContentLoaded", () => {
 
+    // PAGE GUARD (çok önemli)
+    if (!document.getElementById("active-network-table")) {
+        console.debug("[network.js] Not on network page, aborting");
+        return;
+    }
+
+    // -----------------------------
+    // TAB SWITCHING
+    // -----------------------------
     document.querySelectorAll(".tab").forEach(btn => {
         btn.onclick = () => {
             document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
             btn.classList.add("active");
 
-            let tab = btn.dataset.tab;
-            document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+            const tab = btn.dataset.tab;
+
+            document.querySelectorAll(".tab-content").forEach(c =>
+                c.classList.remove("active")
+            );
+
             document
                 .querySelector("#network-tab-" + tab)
                 .classList.add("active");
-
 
             if (tab === "active") loadActiveConnections();
             if (tab === "events") loadNetworkEvents();
@@ -20,19 +32,18 @@ document.addEventListener("DOMContentLoaded", () => {
     loadActiveConnections();
     loadNetworkEvents();
 
-
-    // ----------------------------------------
-    // ACTIVE NETWORK CONNECTIONS
-    // ----------------------------------------
+    // -----------------------------
+    // ACTIVE CONNECTIONS
+    // -----------------------------
     function loadActiveConnections() {
         fetch("/api/network/active")
             .then(res => res.json())
             .then(json => {
-                let tbody = document.getElementById("active-network-table");
+                const tbody = document.getElementById("active-network-table");
                 tbody.innerHTML = "";
 
                 (json.data || []).forEach(c => {
-                    let tr = document.createElement("tr");
+                    const tr = document.createElement("tr");
 
                     tr.innerHTML = `
                         <td>${c.pid || "-"}</td>
@@ -41,94 +52,78 @@ document.addEventListener("DOMContentLoaded", () => {
                         <td>${c.laddr_ip}:${c.laddr_port}</td>
                         <td>${c.raddr_ip ? c.raddr_ip + ":" + c.raddr_port : "-"}</td>
                         <td>${c.status}</td>
-                        <td><button class="details-active-btn" data-json='${JSON.stringify(c)}'>View</button></td>
+                        <td>
+                            <button class="details-active-btn"
+                                data-json='${JSON.stringify(c)}'>
+                                View
+                            </button>
+                        </td>
                     `;
 
                     tbody.appendChild(tr);
                 });
 
                 document.querySelectorAll(".details-active-btn").forEach(btn => {
-                    btn.onclick = () => showModal(JSON.parse(btn.dataset.json));
+                    btn.onclick = () =>
+                        showModal(JSON.parse(btn.dataset.json));
                 });
             });
     }
 
-
-    // ----------------------------------------
-    // NETWORK EVENT HISTORY
-    // ----------------------------------------
+    // -----------------------------
+    // NETWORK EVENTS
+    // -----------------------------
     function loadNetworkEvents() {
-    console.debug("[FE][NetworkEvents] Fetching /api/network/events");
+        fetch("/api/network/events")
+            .then(res => res.json())
+            .then(json => {
+                const tbody = document.getElementById("network-event-table");
+                tbody.innerHTML = "";
 
-    fetch("/api/network/events")
-        .then(res => {
-            console.debug("[FE][NetworkEvents] Response status:", res.status);
-            if (!res.ok) {
-                throw new Error("HTTP " + res.status);
-            }
-            return res.json();
-        })
-        .then(json => {
-            console.debug(
-                "[FE][NetworkEvents] Response parsed",
-                "hasData=", Array.isArray(json.data),
-                "count=", json.data ? json.data.length : 0
-            );
+                (json.data || []).forEach(ev => {
+                    const tr = document.createElement("tr");
 
-            let tbody = document.getElementById("network-event-table");
-            tbody.innerHTML = "";
+                    tr.innerHTML = `
+                        <td>${ev.timestamp}</td>
+                        <td>${ev.event_type}</td>
+                        <td>${ev.pid ?? "-"}</td>
+                        <td>${ev.process_name ?? "-"}</td>
+                        <td>
+                            <button class="details-btn" data-id="${ev.id}">
+                                View
+                            </button>
+                        </td>
+                    `;
 
-            if (!json.data || json.data.length === 0) {
-                console.warn("[FE][NetworkEvents] No events returned");
-                return;
-            }
+                    tbody.appendChild(tr);
+                });
 
-            json.data.forEach(ev => {
-                let tr = document.createElement("tr");
-
-                tr.innerHTML = `
-                    <td>${ev.timestamp}</td>
-                    <td>${ev.event_type}</td>
-                    <td>${ev.pid ?? "-"}</td>
-                    <td>${ev.process_name ?? "-"}</td>
-                    <td>
-                        <button class="details-btn" data-id="${ev.id}">
-                            View
-                        </button>
-                    </td>
-                `;
-
-                tbody.appendChild(tr);
+                document.querySelectorAll(".details-btn").forEach(btn => {
+                    btn.onclick = () => loadEventDetail(btn.dataset.id);
+                });
             });
+    }
 
-            document.querySelectorAll(".details-btn").forEach(btn => {
-                btn.onclick = () => loadEventDetail(btn.dataset.id);
-            });
-        })
-        .catch(err => {
-            console.error("[FE][NetworkEvents] Failed:", err);
-        });
-}
-
-
-    // ----------------------------------------
-    // EVENT DETAIL MODAL
-    // ----------------------------------------
+    // -----------------------------
+    // EVENT DETAIL
+    // -----------------------------
     function loadEventDetail(id) {
         fetch(`/api/network/events/${id}`)
             .then(res => res.json())
             .then(json => showModal(json.data));
     }
 
-
+    // -----------------------------
+    // MODAL
+    // -----------------------------
     function showModal(obj) {
-        document.getElementById("modal-body").innerText =
+        document.getElementById("network-modal-body").innerText =
             JSON.stringify(obj, null, 4);
 
         document.getElementById("network-modal").style.display = "block";
     }
 
-    document.getElementById("modal-close").onclick = () => {
+    document.getElementById("network-modal-close").onclick = () => {
         document.getElementById("network-modal").style.display = "none";
     };
 
