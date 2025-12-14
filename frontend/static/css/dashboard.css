@@ -1,132 +1,141 @@
-/* =====================================================
-   SYSTEM CARDS (DARK THEME UYUMLU)
-===================================================== */
+/* ===============================
+   SYSTEM METRIC CARDS
+================================ */
 
 .system-card-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 28px;
+    gap: 20px;
+    margin-bottom: 32px;
 }
 
 .system-card {
-    background: #1e1e1e;
-    padding: 18px 16px;
-    border-radius: 10px;
-    border: 1px solid #2a2a2a;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 22px 18px;
     text-align: center;
-    color: #ddd;
+    border: 1px solid #e5e7eb;
 }
 
 .system-card h3 {
-    font-size: 14px;
-    font-weight: 500;
-    color: #aaa;
-    margin-bottom: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
 }
 
 .system-card .value {
     font-size: 26px;
     font-weight: 700;
-    color: #ffffff;
-    letter-spacing: 0.5px;
+    color: #111827;
 }
 
 
-/* =====================================================
+/* ===============================
    APPLICATION LOG VIEWER
-===================================================== */
+================================ */
 
 .log-box {
-    background: #111;
-    color: #eee;
+    background: #ffffff;
+    color: #111827;
     padding: 14px;
-    border-radius: 8px;
+    border-radius: 10px;
     font-family: monospace;
     font-size: 13px;
-    max-height: 280px;
+    max-height: 260px;
     overflow-y: auto;
     white-space: pre-wrap;
-    border: 1px solid #222;
-    margin-bottom: 28px;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 32px;
 }
 
-.log-info  { color: #8fa8ff; }
-.log-warn  { color: #f5d742; }
-.log-error { color: #ff6b6b; }
+.log-info  { color: #2563eb; }
+.log-warn  { color: #ca8a04; }
+.log-error { color: #dc2626; }
 
 
-/* =====================================================
+/* ===============================
    THREAD HEALTH TABLE
-===================================================== */
+================================ */
 
 .thread-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 28px;
+    margin-bottom: 32px;
     font-size: 13px;
+    background: #ffffff;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
 }
 
 .thread-table th {
+    background: #f9fafb;
     text-align: left;
-    color: #aaa;
-    font-weight: 500;
-    padding: 8px;
-    border-bottom: 1px solid #333;
+    padding: 10px;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .thread-table td {
-    padding: 8px;
-    border-bottom: 1px solid #2a2a2a;
-    color: #ddd;
+    padding: 10px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #111827;
 }
 
 .thread-ok {
-    color: #28c76f;
+    color: #16a34a;
     font-weight: 600;
 }
 
 .thread-dead {
-    color: #ff4b4b;
+    color: #dc2626;
     font-weight: 600;
 }
 
 
-/* =====================================================
+/* ===============================
    PARSED LOG PREVIEW TABLE
-===================================================== */
+================================ */
 
 .parsed-log-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 16px;
     font-size: 13px;
+    background: #ffffff;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
 }
 
 .parsed-log-table th {
+    background: #f9fafb;
     text-align: left;
-    color: #aaa;
-    font-weight: 500;
-    padding: 8px;
-    border-bottom: 1px solid #333;
+    padding: 10px;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .parsed-log-table td {
-    padding: 8px;
-    border-bottom: 1px solid #2a2a2a;
-    color: #ddd;
+    padding: 10px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #111827;
 }
 
 
-/* =====================================================
+/* ===============================
    VIEW ALL LINK
-===================================================== */
+================================ */
 
 .view-all {
-    margin-top: 10px;
+    margin-top: 12px;
     display: inline-block;
-    color: #4da3ff;
+    color: #2563eb;
     font-size: 13px;
+    font-weight: 500;
     text-decoration: none;
 }
 
