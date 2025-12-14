@@ -1,3 +1,5 @@
+if (!document.getElementById("metric-time-card")) return;
+
 // ====================== FETCH SYSTEM STATUS ======================
 async function fetchSystemStatus() {
     console.log("[DEBUG][fetchSystemStatus] Called");
@@ -32,32 +34,30 @@ async function fetchSystemStatus() {
 
 // ====================== FETCH LATEST METRIC SNAPSHOT ======================
 async function fetchLatestMetrics() {
-    console.log("[DEBUG][fetchLatestMetrics] Called");
-
     try {
-        console.log("[DEBUG][fetchLatestMetrics] Fetching /api/metrics/latest ...");
         const res = await fetch("/api/metrics/latest");
-        console.log("[DEBUG][fetchLatestMetrics] Response:", res);
+        const json = await res.json();
 
-        const data = await res.json();
-        console.log("[DEBUG][fetchLatestMetrics] JSON:", data);
-
-        if (!data.success || !data.data) {
-            console.warn("[WARN][fetchLatestMetrics] No metric snapshot found");
+        if (!json.success || !json.data) {
+            console.warn("[metrics] No metric snapshot");
             return;
         }
 
-        const ts = data.data.timestamp;
-        console.log("[DEBUG][fetchLatestMetrics] Timestamp:", ts);
+        const ts = json.data.timestamp;
 
-        document.querySelector("#metric-time-card .value").textContent = ts;
+        const date = new Date(ts);
+        const human = date.toLocaleString();
 
-        console.log("[DEBUG][fetchLatestMetrics] DOM updated");
+        const el = document.querySelector("#metric-time-card .value");
+        if (el) {
+            el.textContent = human;
+        }
 
     } catch (e) {
         console.error("Metric fetch error:", e);
     }
 }
+
 
 // ====================== INTERNAL LOG VIEWER ======================
 async function fetchInternalLogs() {

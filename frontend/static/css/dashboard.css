@@ -1,79 +1,135 @@
-/* ==== SYSTEM CARDS ==== */
+/* =====================================================
+   SYSTEM CARDS (DARK THEME UYUMLU)
+===================================================== */
+
 .system-card-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 15px;
-    margin-bottom: 25px;
+    gap: 16px;
+    margin-bottom: 28px;
 }
 
 .system-card {
-    background: white;
-    padding: 18px;
-    border-radius: 8px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    background: #1e1e1e;
+    padding: 18px 16px;
+    border-radius: 10px;
+    border: 1px solid #2a2a2a;
     text-align: center;
+    color: #ddd;
+}
+
+.system-card h3 {
+    font-size: 14px;
+    font-weight: 500;
+    color: #aaa;
+    margin-bottom: 6px;
 }
 
 .system-card .value {
     font-size: 26px;
-    margin-top: 5px;
-    font-weight: bold;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.5px;
 }
 
-/* ==== LOG VIEWER ==== */
+
+/* =====================================================
+   APPLICATION LOG VIEWER
+===================================================== */
+
 .log-box {
     background: #111;
     color: #eee;
-    padding: 12px;
+    padding: 14px;
     border-radius: 8px;
     font-family: monospace;
+    font-size: 13px;
     max-height: 280px;
     overflow-y: auto;
-    white-space: pre-line;
-    margin-bottom: 25px;
+    white-space: pre-wrap;
+    border: 1px solid #222;
+    margin-bottom: 28px;
 }
 
-.log-info { color: #9bb1ff; }
-.log-warn { color: #f5d742; }
-.log-error { color: #ff5757; }
+.log-info  { color: #8fa8ff; }
+.log-warn  { color: #f5d742; }
+.log-error { color: #ff6b6b; }
 
-/* ==== THREAD TABLE ==== */
+
+/* =====================================================
+   THREAD HEALTH TABLE
+===================================================== */
+
 .thread-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 25px;
+    margin-bottom: 28px;
+    font-size: 13px;
 }
 
-.thread-table th,
+.thread-table th {
+    text-align: left;
+    color: #aaa;
+    font-weight: 500;
+    padding: 8px;
+    border-bottom: 1px solid #333;
+}
+
 .thread-table td {
     padding: 8px;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid #2a2a2a;
+    color: #ddd;
 }
 
 .thread-ok {
     color: #28c76f;
-    font-weight: bold;
+    font-weight: 600;
 }
 
 .thread-dead {
     color: #ff4b4b;
-    font-weight: bold;
+    font-weight: 600;
 }
 
-/* ==== PARSED LOG TABLE ==== */
+
+/* =====================================================
+   PARSED LOG PREVIEW TABLE
+===================================================== */
+
 .parsed-log-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 15px;
+    margin-top: 16px;
+    font-size: 13px;
 }
 
-.parsed-log-table th,
+.parsed-log-table th {
+    text-align: left;
+    color: #aaa;
+    font-weight: 500;
+    padding: 8px;
+    border-bottom: 1px solid #333;
+}
+
 .parsed-log-table td {
     padding: 8px;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid #2a2a2a;
+    color: #ddd;
 }
 
+
+/* =====================================================
+   VIEW ALL LINK
+===================================================== */
+
 .view-all {
-    margin-top: 8px;
+    margin-top: 10px;
     display: inline-block;
+    color: #4da3ff;
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.view-all:hover {
+    text-decoration: underline;
 }
