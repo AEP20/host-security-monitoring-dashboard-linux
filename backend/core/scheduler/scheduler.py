@@ -122,6 +122,7 @@ class Scheduler:
                         continue  # ↩️ burada SKIP ŞART
 
                     # STEP 2 → structured event → EventDispatcher
+                    logger.debug(f"[Scheduler] Dispatching parsed log event: {parsed_event}")
                     self.event_dispatcher.dispatch(parsed_event)
 
             except Exception:

@@ -84,6 +84,7 @@ class DBWriter:
     # -------------------------------------------------
     def _handle_event(self, event: Dict[str, Any]):
         etype = event.get("type", "")
+        logger.debug(f"[DBWriter] Handling event type={etype}")
 
         if not etype:
             logger.debug("[DBWriter] Dropped event with missing type")
