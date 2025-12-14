@@ -1,3 +1,5 @@
+import { formatTimestamp } from "./utils.js";
+
 // ====================== FETCH SYSTEM STATUS ======================
 async function fetchSystemStatus() {
     console.log("[DEBUG][fetchSystemStatus] Called");
@@ -195,7 +197,7 @@ async function fetchParsedLogs() {
             const row = document.createElement("tr");
 
             row.innerHTML = `
-                <td>${log.timestamp}</td>
+                <td>${formatTimestamp(log.timestamp)}</td>
                 <td>${log.severity || '-'}</td>
                 <td>${log.event_type}</td>
                 <td>${log.message}</td>
