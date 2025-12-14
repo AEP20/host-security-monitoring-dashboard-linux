@@ -90,14 +90,13 @@ class AuthParser:
     # ---------------------------
 
     def extract_timestamp(self, line: str):
-        """
-        auth.log timestamp formatı:
-        'Dec  4 12:32:10'
-
-        Regex sadece match eder, burada gerçek datetime objesi oluşturulur.
-        """
         try:
-            # Regex MATCH ? optional
+            # 1️⃣ ISO-8601 (journald / modern syslog)
+            if line and line[0].isdigit():
+                ts_str = line.split()[0]
+                return datetime.fromisoformat(ts_str)
+
+            # 2️⃣ Klasik auth.log (Dec  4 12:32:10)
             if not AUTH_TIMESTAMP.match(line):
                 return None
 
@@ -112,6 +111,7 @@ class AuthParser:
                 f"{year}-{month}-{day} {time_str}",
                 "%Y-%m-%d %H:%M:%S"
             )
+
         except Exception:
             return None
 
