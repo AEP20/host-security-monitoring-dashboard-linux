@@ -168,6 +168,7 @@ class DBWriter:
         )
 
     def _save_log_event(self, event: Dict[str, Any]):
+        logger.debug(f"[DBWriter] Saving LOG_EVENT to database: {event}")
         self._with_retry(
             lambda session: LogEventModel.create(event, session=session),
             event_type="LOG_EVENT"
