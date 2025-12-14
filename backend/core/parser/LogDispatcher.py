@@ -50,7 +50,6 @@ class LogDispatcher:
         try:
             event = parser.parse(line)
 
-            event["type"] = "LOG_EVENT"
             self.save_to_db(event)
 
             return event
@@ -67,6 +66,7 @@ class LogDispatcher:
         """
 
         try:
+            event["type"] = "LOG_EVENT"
             services.db_writer.enqueue(event)
         except Exception:
             pass
