@@ -105,7 +105,7 @@ class SSHBruteforceRule(StatefulRule):
                 )
             )
 
-            context.clear_key(self.rule_id, (ip, user))
+            context.clear_key(rule_id=self.rule_id, key=(ip, user))
             logger.debug(
                 f"[SSH_BRUTE][STATE_CLEARED] ip={ip} user={user}"
             )
