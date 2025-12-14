@@ -90,11 +90,15 @@ class CorrelationContext:
         # prune before insert
         self._prune_deque(dq, window)
 
-        # minimal event reference
+        # --- FIX: normalize timestamp to epoch float ---
+        ts = event.get("timestamp")
+        if hasattr(ts, "timestamp"):  # datetime -> epoch
+            ts = ts.timestamp()
+
         event_ref: EventRef = {
             "event_id": event.get("id"),
             "event_type": event.get("type"),
-            "ts": event.get("timestamp") or self._now(),
+            "ts": ts or self._now(),
         }
 
         dq.append(event_ref)
