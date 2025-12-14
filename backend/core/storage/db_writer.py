@@ -1,9 +1,4 @@
-# DBWriter
-# ├── Queue (thread-safe)
-# ├── Worker Thread (daemon)
-# ├── SessionLocal (tek session per işlem)
-# ├── Event → Model routing
-# ├── Retry & commit logic
+# backend/core/storage/db_writer.py
 
 import threading
 import queue
@@ -28,9 +23,10 @@ class DBWriter:
                         DB WRITER SERVICE
     ============================================================
     - Sistemdeki TEK DB write noktası
-    - Thread-safe Queue üzerinden event alır
-    - Tek worker thread DB'ye yazar
-    - SQLite / PostgreSQL uyumlu
+    - Thread-safe Queue
+    - Tek worker thread
+    - Retry & commit logic
+    - Spam yapmayan debug logging
     """
 
     def __init__(self):
@@ -43,9 +39,9 @@ class DBWriter:
             daemon=True
         )
 
-    # -------------------------
+    # -------------------------------------------------
     # PUBLIC API
-    # -------------------------
+    # -------------------------------------------------
     def start(self):
         logger.info("[DBWriter] Starting DB writer thread")
         self.worker.start()
@@ -57,16 +53,16 @@ class DBWriter:
 
     def enqueue(self, event: Dict[str, Any]):
         """
-        EventDispatcher burayı çağırır
+        EventDispatcher / LogDispatcher burayı çağırır
         """
         if not event:
             return
 
         self.queue.put(event)
 
-    # -------------------------
+    # -------------------------------------------------
     # WORKER LOOP
-    # -------------------------
+    # -------------------------------------------------
     def _run(self):
         logger.info("[DBWriter] Worker thread running")
 
@@ -78,16 +74,20 @@ class DBWriter:
 
             try:
                 self._handle_event(event)
-            except Exception as e:
-                logger.exception("[DBWriter] Failed to handle event")
+            except Exception:
+                logger.exception("[DBWriter] Unhandled exception while processing event")
             finally:
                 self.queue.task_done()
 
-    # -------------------------
+    # -------------------------------------------------
     # EVENT ROUTER
-    # -------------------------
+    # -------------------------------------------------
     def _handle_event(self, event: Dict[str, Any]):
         etype = event.get("type", "")
+
+        if not etype:
+            logger.debug("[DBWriter] Dropped event with missing type")
+            return
 
         if etype.startswith("PROCESS_"):
             self._save_process_event(event)
@@ -102,53 +102,79 @@ class DBWriter:
         else:
             logger.debug(f"[DBWriter] Ignored unknown event type={etype}")
 
-    # -------------------------
-    # SAVE METHODS
-    # -------------------------
-    def _with_retry(self, fn, retries=3):
-        for attempt in range(retries):
+    # -------------------------------------------------
+    # CORE DB OPERATION WITH RETRY
+    # -------------------------------------------------
+    def _with_retry(self, fn, event_type: str, retries: int = 3):
+        for attempt in range(1, retries + 1):
             session = SessionLocal()
             try:
                 fn(session)
                 session.commit()
+
+                logger.debug(
+                    f"[DBWriter] Write OK type={event_type} (attempt {attempt})"
+                )
                 return
+
             except OperationalError as e:
                 session.rollback()
+
                 if "database is locked" in str(e):
-                    time.sleep(0.1 * (attempt + 1))
+                    logger.warning(
+                        f"[DBWriter] DB locked type={event_type} "
+                        f"(retry {attempt}/{retries})"
+                    )
+                    time.sleep(0.1 * attempt)
                 else:
+                    logger.exception(
+                        f"[DBWriter] OperationalError type={event_type}"
+                    )
                     raise
+
+            except Exception:
+                session.rollback()
+                logger.exception(
+                    f"[DBWriter] Unexpected error type={event_type}"
+                )
+                raise
+
             finally:
                 session.close()
 
-        logger.error("[DBWriter] Max retry exceeded")
+        logger.error(
+            f"[DBWriter] Max retry exceeded type={event_type}"
+        )
 
-    def _save_process_event(self, event):
-        def op(session):
-            ProcessEventModel.create(event, session=session)
+    # -------------------------------------------------
+    # SAVE METHODS
+    # -------------------------------------------------
+    def _save_process_event(self, event: Dict[str, Any]):
+        self._with_retry(
+            lambda session: ProcessEventModel.create(event, session=session),
+            event_type=event.get("type", "PROCESS")
+        )
 
-        self._with_retry(op)
+    def _save_network_event(self, event: Dict[str, Any]):
+        self._with_retry(
+            lambda session: NetworkEventModel.create(event, session=session),
+            event_type=event.get("type", "NETWORK")
+        )
 
-    def _save_network_event(self, event):
-        def op(session):
-            NetworkEventModel.create(event, session=session)
+    def _save_metric_snapshot(self, event: Dict[str, Any]):
+        self._with_retry(
+            lambda session: MetricModel.create(event, session=session),
+            event_type="METRIC_SNAPSHOT"
+        )
 
-        self._with_retry(op)
+    def _save_log_event(self, event: Dict[str, Any]):
+        self._with_retry(
+            lambda session: LogEventModel.create(event, session=session),
+            event_type="LOG_EVENT"
+        )
 
-    def _save_metric_snapshot(self, event):
-        def op(session):
-            MetricModel.create(event, session=session)
-
-        self._with_retry(op)
-
-    def _save_log_event(self, event):
-        def op(session):
-            LogEventModel.create(event, session=session)
-
-        self._with_retry(op)
-
-    def _save_alert_event(self, event):
-        def op(session):
-            AlertModel.create(event, session=session)
-
-        self._with_retry(op)
+    def _save_alert_event(self, event: Dict[str, Any]):
+        self._with_retry(
+            lambda session: AlertModel.create(event, session=session),
+            event_type=event.get("type", "ALERT")
+        )
