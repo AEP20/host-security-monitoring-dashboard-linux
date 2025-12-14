@@ -1,3 +1,6 @@
+/* -------------------------
+   TABS
+------------------------- */
 .tabs {
     display: flex;
     gap: 10px;
@@ -17,47 +20,49 @@
     color: #fff;
 }
 
-.tab-content { display: none; }
-.tab-content.active { display: block; }
-
-.table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 12px;
-    table-layout: fixed;   
-    font-size: 13px;     
+.tab-content {
+    display: none;
 }
 
-.table {
-    min-width: 900px;  
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 12px;
+.tab-content.active {
+    display: block;
 }
 
-.table th, .table td {
+/* -------------------------
+   TABLE
+------------------------- */
+.table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+    margin-top: 12px;
+    table-layout: fixed;
+    font-size: 13px;
+}
+
+.table th,
+.table td {
     padding: 8px;
     border-bottom: 1px solid #333;
-    white-space: nowrap;     
-    overflow: hidden;        
-    text-overflow: ellipsis; 
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.table td:nth-child(6) {
-    max-width: 200px; 
-}
+/* -------------------------
+   ACTIVE PROCESS TABLE
+------------------------- */
+#process-tab-active .table th:nth-child(1),
+#process-tab-active .table td:nth-child(1) { width: 50px; }   /* PID */
 
-.table th:nth-child(1),
-.table td:nth-child(1) { width: 50px; }   /* PID */
+#process-tab-active .table th:nth-child(4),
+#process-tab-active .table td:nth-child(4) { width: 60px; }   /* CPU */
 
-.table th:nth-child(4),
-.table td:nth-child(4) { width: 60px; }   /* CPU */
+#process-tab-active .table th:nth-child(5),
+#process-tab-active .table td:nth-child(5) { width: 60px; }   /* MEM */
 
-.table th:nth-child(5),
-.table td:nth-child(5) { width: 60px; }   /* MEM */
-
-.table th:nth-child(7),
-.table td:nth-child(7) { width: 60px; }   /* Kill */
+#process-tab-active .table th:nth-child(7),
+#process-tab-active .table td:nth-child(7) { width: 60px; }   /* Kill */
 
 .kill-btn {
     padding: 4px 8px;
@@ -67,6 +72,27 @@
     cursor: pointer;
 }
 
+/* -------------------------
+   PROCESS EVENTS TABLE
+------------------------- */
+#process-tab-events .table th:nth-child(1),
+#process-tab-events .table td:nth-child(1) { width: 180px; }
+
+#process-tab-events .table th:nth-child(2),
+#process-tab-events .table td:nth-child(2) { width: 150px; }
+
+#process-tab-events .table th:nth-child(3),
+#process-tab-events .table td:nth-child(3) { width: 80px; }
+
+#process-tab-events .table th:nth-child(4),
+#process-tab-events .table td:nth-child(4) { width: 150px; }
+
+#process-tab-events .table th:nth-child(5),
+#process-tab-events .table td:nth-child(5) { width: 70px; }
+
+/* -------------------------
+   MODAL
+------------------------- */
 .modal {
     display: none;
     position: fixed;
@@ -80,50 +106,16 @@
 .modal-content {
     background: #222;
     padding: 16px;
-    margin: 5% auto;        
+    margin: 5% auto;
     width: 70%;
-    max-height: 80vh;         
-    overflow-y: auto;        
+    max-height: 80vh;
+    overflow-y: auto;
     color: #eee;
     border-radius: 6px;
-    position: relative;
 }
 
 #modal-close {
     float: right;
     cursor: pointer;
     font-size: 24px;
-}
-
-
-/* EVENT TABLOSU KOLON GENİŞLİKLERİ */
-#tab-events .table th:nth-child(1),
-#tab-events .table td:nth-child(1) {
-    width: 180px;     /* Timestamp */
-}
-
-#tab-events .table th:nth-child(2),
-#tab-events .table td:nth-child(2) {
-    width: 150px;     /* Event Type */
-}
-
-#tab-events .table th:nth-child(3),
-#tab-events .table td:nth-child(3) {
-    width: 80px;      /* PID */
-}
-
-#tab-events .table th:nth-child(4),
-#tab-events .table td:nth-child(4) {
-    width: 150px;     /* Name */
-}
-
-#tab-events .table th:nth-child(5),
-#tab-events .table td:nth-child(5) {
-    width: 70px;      /* Details button */
-}
-
-#tab-events .table td {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }

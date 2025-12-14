@@ -10,7 +10,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
             let tab = btn.dataset.tab;
             document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
-            document.querySelector("#tab-" + tab).classList.add("active");
+            document
+            .querySelector("#process-tab-" + tab)
+            .classList.add("active");
+
 
             if (tab === "active") loadActiveProcesses();
             if (tab === "events") loadProcessEvents();

@@ -12,16 +12,13 @@ Processes
 
 <div class="process-container">
 
-    <!-- TAB HEADERS -->
     <div class="tabs">
         <button class="tab active" data-tab="active">Active Processes</button>
         <button class="tab" data-tab="events">Process Events</button>
     </div>
 
-    <!-- --------------------------- -->
-    <!-- ACTIVE PROCESSES TABLE -->
-    <!-- --------------------------- -->
-    <div id="tab-active" class="tab-content active">
+    <!-- ACTIVE PROCESSES -->
+    <div id="process-tab-active" class="tab-content active">
         <h2>Active Processes</h2>
 
         <div class="table-wrapper">
@@ -40,13 +37,10 @@ Processes
                 <tbody id="active-process-table"></tbody>
             </table>
         </div>
-
     </div>
 
-    <!-- --------------------------- -->
-    <!-- PROCESS EVENTS TABLE -->
-    <!-- --------------------------- -->
-    <div id="tab-events" class="tab-content">
+    <!-- PROCESS EVENTS -->
+    <div id="process-tab-events" class="tab-content">
         <h2>Process Event History</h2>
 
         <table class="table">
@@ -66,10 +60,10 @@ Processes
 </div>
 
 <!-- EVENT DETAIL MODAL -->
-<div id="event-modal" class="modal">
+<div id="process-modal" class="modal">
     <div class="modal-content">
-        <span id="modal-close">&times;</span>
-        <pre id="modal-body"></pre>
+        <span id="process-modal-close">&times;</span>
+        <pre id="process-modal-body"></pre>
     </div>
 </div>
 

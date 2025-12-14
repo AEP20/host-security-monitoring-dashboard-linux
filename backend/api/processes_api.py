@@ -4,6 +4,7 @@ from backend.models.process_event_model import ProcessEventModel
 from backend.database import SessionLocal
 from backend.logger import logger
 import psutil
+import time
 
 process_api = Blueprint("process_api", __name__)
 
