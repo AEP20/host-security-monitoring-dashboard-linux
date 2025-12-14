@@ -92,6 +92,7 @@ class DBWriter:
         if etype.startswith("PROCESS_"):
             self._save_process_event(event)
         elif etype == "LOG_EVENT":
+            logger.debug(f"[DBWriter] Saving LOG_EVENT to database: (kritik) {event}")
             self._save_log_event(event)
         elif etype.startswith("NET_") or etype.startswith("CONNECTION_"):
             self._save_network_event(event)
