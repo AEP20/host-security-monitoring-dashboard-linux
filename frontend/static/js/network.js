@@ -1,3 +1,5 @@
+import { formatTimestamp } from "./utils.js";
+
 document.addEventListener("DOMContentLoaded", () => {
 
     // PAGE GUARD (çok önemli)
@@ -84,7 +86,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     const tr = document.createElement("tr");
 
                     tr.innerHTML = `
-                        <td>${ev.timestamp}</td>
+                        <td>${formatTimestamp(ev.timestamp)}</td>
                         <td>${ev.event_type}</td>
                         <td>${ev.pid ?? "-"}</td>
                         <td>${ev.process_name ?? "-"}</td>
