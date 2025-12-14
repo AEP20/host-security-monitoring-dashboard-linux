@@ -17,7 +17,6 @@ class SSHBruteforceRule(StatefulRule):
     description = "SSH brute force attack detected"
     severity = "HIGH"
 
-    # 🔴 KRİTİK DÜZELTME
     event_prefix = "FAILED_LOGIN"
 
     window_seconds = 60

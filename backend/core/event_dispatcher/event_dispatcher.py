@@ -5,6 +5,7 @@ from backend.logger import logger
 from backend.core.storage import services
 
 from backend.core.rules.rule_engine import RuleEngine
+from backend.core.rules.context import CorrelationContext
 
 from backend.core.rules.suspicious_process import SuspiciousProcessRule
 from backend.core.rules.ssh_bruteforce import SSHBruteforceRule
@@ -13,11 +14,14 @@ from backend.core.rules.ssh_bruteforce import SSHBruteforceRule
 class EventDispatcher:
 
     def __init__(self):
+        self.context = CorrelationContext()
+
         self.rule_engine = RuleEngine(
             rules=[
                 SuspiciousProcessRule(),
                 SSHBruteforceRule(),
-            ]
+            ],
+            context=self.context
         )
 
     def dispatch(self, event: dict):
