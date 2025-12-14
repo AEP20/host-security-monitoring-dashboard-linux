@@ -38,7 +38,7 @@ def get_network_events():
         if protocol:
             q = q.filter(NetworkEventModel.protocol == protocol)
 
-        q = q.order_by(NetworkEventModel.timestamp.desc())
+        q = q.order_by(NetworkEventModel.timestamp.desc()).limit(500)
         rows = [r.to_dict() for r in q.all()]
         
         print("Fetched network events:", len(rows))

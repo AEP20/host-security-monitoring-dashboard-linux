@@ -38,10 +38,10 @@ def get_process_events():
             q = q.filter(ProcessEventModel.pid == int(pid))
 
         logger.debug("[API][PROCESS_EVENTS] Ordering query")
-        q = q.order_by(ProcessEventModel.timestamp.desc())
+        q = q.order_by(ProcessEventModel.timestamp.desc()).limit(500)
 
         logger.debug("[API][PROCESS_EVENTS] Executing query (q.all())")
-        rows_raw = q.all()   # 👈 MUHTEMEL KİLİTLENEN YER
+        rows_raw = q.all()  
 
         logger.debug(f"[API][PROCESS_EVENTS] Query returned {len(rows_raw)} rows")
 
