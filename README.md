@@ -33,4 +33,4 @@ source /opt/HIDS/venv/bin/activate -> activate venv
     sudo systemctl start hids.service
     sudo journalctl -u hids.service -f
 /var/log/hids/app.log      -> HIDS uygulama logları -> head -n 150 /var/log/hids/app.log
-sudo truncate -s 0 /var/log/hids/app.log
+sudo truncate -s 0 /var/log/hids/app.log -> Uygulama içi logları temizle

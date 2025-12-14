@@ -10,6 +10,8 @@ from backend.api.processes_api import process_api as processes_api
 from backend.core.scheduler.scheduler import Scheduler
 from backend.core.storage.db_writer import DBWriter
 
+from backend.core.storage import services
+
 from backend.logger import logger
 
 # -------------------------------------------------
@@ -46,6 +48,8 @@ def create_app():
     # -------------------------------------------------
     init_db()
     logger.info("[APP] Database initialized")
+    
+    services.db_writer = db_writer
 
     # -------------------------------------------------
     # START BACKGROUND SERVICES
