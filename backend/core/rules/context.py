@@ -29,7 +29,6 @@ class CorrelationContext:
         self.max_keys_per_rule = max_keys_per_rule
         self.max_events_per_key = max_events_per_key
 
-        # structure:
         # rule_id -> key -> deque[event_ref]
         self._store: Dict[str, Dict[ContextKey, Deque[EventRef]]] = defaultdict(dict)
 
@@ -56,7 +55,6 @@ class CorrelationContext:
         if len(rule_bucket) <= self.max_keys_per_rule:
             return
 
-        # drop oldest key (dict preserves insertion order in py3.7+)
         oldest_key = next(iter(rule_bucket))
         del rule_bucket[oldest_key]
 
@@ -79,7 +77,6 @@ class CorrelationContext:
         window = window_seconds or self.default_window
         rule_bucket = self._store[rule_id]
 
-        # enforce key count limit
         self._ensure_limits(rule_id)
 
         if key not in rule_bucket:
@@ -90,15 +87,15 @@ class CorrelationContext:
         # prune before insert
         self._prune_deque(dq, window)
 
-        # --- FIX: normalize timestamp to epoch float ---
+        # normalize timestamp to epoch seconds
         ts = event.get("timestamp")
-        if hasattr(ts, "timestamp"):  # datetime -> epoch
+        if hasattr(ts, "timestamp"):
             ts = ts.timestamp()
 
         event_ref: EventRef = {
             "event_id": event.get("id"),
-            "event_type": event.get("type"),
-            "ts": ts or self._now(),
+            "event_type": event.get("event_type"),  
+            "ts": ts if ts is not None else self._now(),
         }
 
         dq.append(event_ref)
@@ -132,6 +129,7 @@ class CorrelationContext:
         rule_bucket = self._store.get(rule_id)
         if not rule_bucket:
             return
+
         rule_bucket.pop(key, None)
 
     def clear_rule(self, *, rule_id: str):
@@ -144,10 +142,10 @@ class CorrelationContext:
         """
         Lightweight introspection (debug / health).
         """
-        out = {}
-        for rule_id, bucket in self._store.items():
-            out[rule_id] = {
+        return {
+            rule_id: {
                 "keys": len(bucket),
                 "events": sum(len(dq) for dq in bucket.values()),
             }
-        return out
+            for rule_id, bucket in self._store.items()
+        }
