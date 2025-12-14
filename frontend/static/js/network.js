@@ -55,31 +55,57 @@ document.addEventListener("DOMContentLoaded", () => {
     // NETWORK EVENT HISTORY
     // ----------------------------------------
     function loadNetworkEvents() {
-        fetch("/api/network/events")
-            .then(res => res.json())
-            .then(json => {
-                let tbody = document.getElementById("network-event-table");
-                tbody.innerHTML = "";
+    console.debug("[FE][NetworkEvents] Fetching /api/network/events");
 
-                (json.data || []).forEach(ev => {
-                    let tr = document.createElement("tr");
+    fetch("/api/network/events")
+        .then(res => {
+            console.debug("[FE][NetworkEvents] Response status:", res.status);
+            if (!res.ok) {
+                throw new Error("HTTP " + res.status);
+            }
+            return res.json();
+        })
+        .then(json => {
+            console.debug(
+                "[FE][NetworkEvents] Response parsed",
+                "hasData=", Array.isArray(json.data),
+                "count=", json.data ? json.data.length : 0
+            );
 
-                    tr.innerHTML = `
-                        <td>${ev.timestamp}</td>
-                        <td>${ev.event_type}</td>
-                        <td>${ev.pid}</td>
-                        <td>${ev.process_name}</td>
-                        <td><button class="details-btn" data-id="${ev.id}">View</button></td>
-                    `;
+            let tbody = document.getElementById("network-event-table");
+            tbody.innerHTML = "";
 
-                    tbody.appendChild(tr);
-                });
+            if (!json.data || json.data.length === 0) {
+                console.warn("[FE][NetworkEvents] No events returned");
+                return;
+            }
 
-                document.querySelectorAll(".details-btn").forEach(btn => {
-                    btn.onclick = () => loadEventDetail(btn.dataset.id);
-                });
+            json.data.forEach(ev => {
+                let tr = document.createElement("tr");
+
+                tr.innerHTML = `
+                    <td>${ev.timestamp}</td>
+                    <td>${ev.event_type}</td>
+                    <td>${ev.pid ?? "-"}</td>
+                    <td>${ev.process_name ?? "-"}</td>
+                    <td>
+                        <button class="details-btn" data-id="${ev.id}">
+                            View
+                        </button>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
             });
-    }
+
+            document.querySelectorAll(".details-btn").forEach(btn => {
+                btn.onclick = () => loadEventDetail(btn.dataset.id);
+            });
+        })
+        .catch(err => {
+            console.error("[FE][NetworkEvents] Failed:", err);
+        });
+}
 
 
     // ----------------------------------------
