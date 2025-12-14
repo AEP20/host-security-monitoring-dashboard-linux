@@ -1,9 +1,7 @@
 {% extends "layout.html" %}
 {% set active = "alerts" %}
 
-{% block page_title %}
-Alerts
-{% endblock %}
+{% block page_title %}Security Alerts{% endblock %}
 
 {% block extra_styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/alerts.css') }}">
@@ -12,31 +10,39 @@ Alerts
 {% block content %}
 
 <div class="alerts-container">
+    
+    <div class="page-header">
+        <h2>Security Alerts</h2>
+        <span class="subtitle">Real-time detected anomalies and rule violations</span>
+    </div>
 
-    <h2>Security Alerts</h2>
-
-    <div class="table-wrapper">
+    <div class="table-wrapper card-style">
         <table class="table">
             <thead>
                 <tr>
-                    <th>Timestamp</th>
-                    <th>Severity</th>
-                    <th>Rule</th>
+                    <th style="width: 180px;">Timestamp</th>
+                    <th style="width: 100px;">Severity</th>
+                    <th style="width: 200px;">Rule</th>
                     <th>Message</th>
-                    <th>Details</th>
+                    <th style="width: 100px; text-align: center;">Actions</th>
                 </tr>
             </thead>
-            <tbody id="alerts-table-body"></tbody>
+            <tbody id="alerts-table-body">
+                </tbody>
         </table>
     </div>
 
 </div>
 
-<!-- MODAL -->
 <div id="alerts-modal" class="modal">
     <div class="modal-content">
-        <span id="alerts-modal-close">&times;</span>
-        <pre id="alerts-modal-body"></pre>
+        <div class="modal-header">
+            <h3>Alert Details</h3>
+            <span id="alerts-modal-close" class="close-btn">&times;</span>
+        </div>
+        <div class="modal-body">
+            <pre id="alerts-modal-body"></pre>
+        </div>
     </div>
 </div>
 
