@@ -6,6 +6,8 @@ from backend.api.metrics_api import metrics_api
 from backend.api.network_api import network_api
 from backend.api.logs_api import logs_api
 from backend.api.processes_api import process_api as processes_api
+from backend.api.alerts_api import alerts_api
+
 
 from backend.core.scheduler.scheduler import Scheduler
 from backend.core.storage.db_writer import DBWriter
@@ -40,6 +42,7 @@ def create_app():
     app.register_blueprint(logs_api, url_prefix="/api/logs")
     app.register_blueprint(processes_api, url_prefix="/api/process")
     app.register_blueprint(network_api, url_prefix="/api/network")
+    app.register_blueprint(alerts_api, url_prefix="/api/alerts")
 
     logger.debug("[APP] Blueprints registered")
 
@@ -97,6 +100,11 @@ def create_app():
     @app.route("/network")
     def network_page():
         return render_template("network.html")
+    
+    @app.route("/alerts")
+    def alerts_page():
+        return render_template("alerts.html")
+    
 
     logger.info("[APP] Flask application created successfully")
     return app

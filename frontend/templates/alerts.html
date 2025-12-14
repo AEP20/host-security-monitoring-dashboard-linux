@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+{% set active = "alerts" %}
+
+{% block page_title %}
+Alerts
+{% endblock %}
+
+{% block extra_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/alerts.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<div class="alerts-container">
+
+    <h2>Security Alerts</h2>
+
+    <div class="table-wrapper">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Severity</th>
+                    <th>Rule</th>
+                    <th>Message</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody id="alerts-table-body"></tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- MODAL -->
+<div id="alerts-modal" class="modal">
+    <div class="modal-content">
+        <span id="alerts-modal-close">&times;</span>
+        <pre id="alerts-modal-body"></pre>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/alerts.js') }}"></script>
+{% endblock %}

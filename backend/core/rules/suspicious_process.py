@@ -23,9 +23,8 @@ class SuspiciousProcessRule(BaseRule):
     def build_alert(self, event: dict) -> dict:
         return {
             "type": "ALERT_PROCESS_SUSPICIOUS",
-            "rule_id": self.rule_id,
+            "rule_name": self.rule_id,         
             "severity": self.severity,
             "message": f"Suspicious process detected: {event.get('process_name')}",
-            "timestamp": datetime.utcnow().isoformat(),
-            "source_event": event,
+            "log_event_id": None,             
         }
