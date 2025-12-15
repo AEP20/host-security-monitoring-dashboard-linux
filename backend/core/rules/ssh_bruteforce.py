@@ -1,4 +1,5 @@
 from typing import Dict, Any, List, Tuple
+from datetime import datetime, timezone
 
 from backend.core.rules.base import StatefulRule
 from backend.logger import logger
@@ -6,74 +7,51 @@ from backend.logger import logger
 
 class SSHBruteforceRule(StatefulRule):
     """
-    AUTH_001 – SSH Bruteforce Detection
+    AUTH_001 – SSH Bruteforce Detection (Stateful)
 
-    Stateful rule örneği:
-    - Birden fazla FAILED_LOGIN event'i toplar
-    - Eşik aşılınca TEK bir alert üretir
-    - Alert'i besleyen event'leri EVIDENCE olarak döner
+    - Context'e event_id değil, sadece timestamp (window hesabı için) koyuyoruz.
+    - Alert üretildiğinde evidence listesini boş bırakıyoruz.
+    - Evidence'ı DBWriter, alert.extra içindeki ip/user/window_seconds bilgisiyle
+      log_events tablosundan resolve edip yazacak.
     """
 
     rule_id = "AUTH_001"
     description = "SSH brute force attack detected"
     severity = "HIGH"
 
-    # RuleEngine.supports() bu prefix ile filtreler
     event_prefix = "FAILED_LOGIN"
 
     window_seconds = 60
     threshold = 5
 
     # --------------------------------------------------
-    # HELPERS
-    # --------------------------------------------------
     def _is_relevant(self, event: Dict[str, Any]) -> bool:
-        """
-        Bu rule için hangi event'ler anlamlı?
-        → Sadece AUTH / FAILED_LOGIN
-        """
         return (
             event.get("type") == "LOG_EVENT"
             and event.get("category") == "AUTH"
             and event.get("event_type") == "FAILED_LOGIN"
             and event.get("ip")
             and event.get("user")
+            and event.get("timestamp")
         )
 
     def _build_key(self, event: Dict[str, Any]) -> Tuple[str, str]:
-        """
-        Correlation scope:
-        - Aynı IP
-        - Aynı user
-        """
         return event["ip"], event["user"]
 
     def _build_event_ref(self, event: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Context'e koyacağımız MINIMAL event referansı.
-
-        ⚠️ DİKKAT:
-        - Burada event'in TAM HALİ yok
-        - Sadece alert üretmek için gereken bilgiler var
-        - DB'ye yazılan şey bu DEĞİL
+        Context'e koyduğumuz minimal ref:
+        - id yok (çünkü daha DB’ye yazılmadı)
+        - sadece timestamp: window pruning için yeterli
         """
         return {
-            "event_id": event.get("id"),          # DB’deki log_event id
-            "event_type": "LOG_EVENT",            # Evidence için generic type
-            "timestamp": event.get("timestamp"),  # window hesabı için
+            "id": None,  # intentionally None
+            "event_type": "LOG_EVENT",
+            "timestamp": event.get("timestamp"),
         }
 
     # --------------------------------------------------
-    # STATEFUL API
-    # --------------------------------------------------
     def consume(self, event: Dict[str, Any], context) -> None:
-        """
-        Her event geldiğinde çalışır.
-
-        Görevi:
-        - Event'i context içine eklemek
-        - Henüz alert üretmemek
-        """
         if not self._is_relevant(event):
             return
 
@@ -86,16 +64,9 @@ class SSHBruteforceRule(StatefulRule):
             window_seconds=self.window_seconds,
         )
 
-        logger.debug(
-            f"[SSH_BRUTE][CONSUME] ip={key[0]} user={key[1]}"
-        )
+        logger.debug(f"[SSH_BRUTE][CONSUME] ip={key[0]} user={key[1]}")
 
     def evaluate(self, context) -> List[Dict[str, Any]]:
-        """
-        Context'e bakarak:
-        - Alert üretilecek mi?
-        - Üretilecekse hangi event'ler evidence olacak?
-        """
         results: List[Dict[str, Any]] = []
 
         bucket = context._store.get(self.rule_id)
@@ -104,17 +75,14 @@ class SSHBruteforceRule(StatefulRule):
 
         for (ip, user), events in list(bucket.items()):
             count = len(events)
-
             if count < self.threshold:
                 continue
 
-            logger.info(
-                f"[SSH_BRUTE][TRIGGER] ip={ip} user={user} count={count}"
-            )
+            logger.info(f"[SSH_BRUTE][TRIGGER] ip={ip} user={user} count={count}")
 
-            # -------------------------------
-            # 1️⃣ ALERT PAYLOAD
-            # -------------------------------
+            # Alert timestamp'ı DB tarafında default current_time ile set ediliyor.
+            # DBWriter evidence resolve ederken: [alert_timestamp - window_seconds, alert_timestamp]
+            # aralığından ip+user için FAILED_LOGIN arayacak.
             alert = self.build_alert_base(
                 alert_type="ALERT_SSH_BRUTEFORCE",
                 message=(
@@ -126,43 +94,20 @@ class SSHBruteforceRule(StatefulRule):
                     "ip": ip,
                     "user": user,
                     "attempts": count,
+                    "window_seconds": self.window_seconds,
+                    "evidence_resolve": {
+                        "source": "log_events",
+                        "event_type": "FAILED_LOGIN",
+                        "category": "AUTH",
+                    },
                 },
             )
 
-            # -------------------------------
-            # 2️⃣ EVIDENCE OLUŞTURMA
-            # -------------------------------
-            # Buradaki event'ler:
-            # - context'te toplanmış FAILED_LOGIN'lar
-            # - Alert'i BESLEYEN kanıtlar
-            evidence: List[Dict[str, Any]] = []
+            # Evidence'ı burada üretmiyoruz.
+            # DBWriter alert'i yazdıktan sonra log_events'den event_id'leri resolve edecek.
+            results.append({"alert": alert, "evidence": []})
 
-            for idx, ev in enumerate(events):
-                evidence.append({
-                    "event_type": ev["event_type"],   # LOG_EVENT
-                    "event_id": ev["event_id"],       # log_events.id
-                    "role": "SUPPORT",                # brute force'i destekleyen denemeler
-                    "sequence": idx + 1,              # alert içi sıralama
-                })
-
-            # İstersen:
-            # - son event'i TRIGGER yapabilirsin
-            if evidence:
-                evidence[-1]["role"] = "TRIGGER"
-
-            results.append({
-                "alert": alert,
-                "evidence": evidence,
-            })
-
-            # -------------------------------
-            # 3️⃣ STATE TEMİZLE
-            # -------------------------------
-            # Aynı IP+user için tekrar tekrar alert üretmemek için
             context.clear_key(rule_id=self.rule_id, key=(ip, user))
-
-            logger.debug(
-                f"[SSH_BRUTE][STATE_CLEARED] ip={ip} user={user}"
-            )
+            logger.debug(f"[SSH_BRUTE][STATE_CLEARED] ip={ip} user={user}")
 
         return results

@@ -1,9 +1,8 @@
-# backend/core/storage/db_writer.py
-
 import threading
 import queue
 import time
-from typing import Dict, Any
+from typing import Dict, Any, List
+from datetime import timedelta
 
 from sqlalchemy.exc import OperationalError
 
@@ -28,6 +27,7 @@ class DBWriter:
     - Tek worker thread
     - Retry & commit logic
     - Alert + Evidence atomik yazım
+    - Evidence resolve (DB-based) desteği
     ============================================================
     """
 
@@ -54,15 +54,8 @@ class DBWriter:
         self.worker.join(timeout=5)
 
     def enqueue(self, payload: Dict[str, Any]):
-        """
-        EventDispatcher burayı çağırır.
-        Payload:
-        - normal event
-        - veya ALERT + EVIDENCE paketi
-        """
-        if not payload:
-            return
-        self.queue.put(payload)
+        if payload:
+            self.queue.put(payload)
 
     # -------------------------------------------------
     # WORKER LOOP
@@ -91,7 +84,6 @@ class DBWriter:
         logger.debug(f"[DBWriter] Handling payload type={etype}")
 
         if not etype:
-            logger.debug("[DBWriter] Dropped payload with missing type")
             return
 
         # ---------- RAW EVENTS ----------
@@ -107,7 +99,7 @@ class DBWriter:
         elif etype == "METRIC_SNAPSHOT":
             self._save_metric_snapshot(payload)
 
-        # ---------- ALERT + EVIDENCE ----------
+        # ---------- ALERT ----------
         elif etype == "ALERT":
             self._save_alert_with_evidence(payload)
 
@@ -123,15 +115,11 @@ class DBWriter:
             try:
                 fn(session)
                 session.commit()
-
-                logger.debug(
-                    f"[DBWriter] Write OK type={event_type} (attempt {attempt})"
-                )
+                logger.debug(f"[DBWriter] Write OK type={event_type} (attempt {attempt})")
                 return
 
             except OperationalError as e:
                 session.rollback()
-
                 if "database is locked" in str(e):
                     logger.warning(
                         f"[DBWriter] DB locked type={event_type} "
@@ -139,24 +127,17 @@ class DBWriter:
                     )
                     time.sleep(0.1 * attempt)
                 else:
-                    logger.exception(
-                        f"[DBWriter] OperationalError type={event_type}"
-                    )
                     raise
 
             except Exception:
                 session.rollback()
-                logger.exception(
-                    f"[DBWriter] Unexpected error type={event_type}"
-                )
+                logger.exception(f"[DBWriter] Unexpected error type={event_type}")
                 raise
 
             finally:
                 session.close()
 
-        logger.error(
-            f"[DBWriter] Max retry exceeded type={event_type}"
-        )
+        logger.error(f"[DBWriter] Max retry exceeded type={event_type}")
 
     # -------------------------------------------------
     # SAVE METHODS (RAW EVENTS)
@@ -186,31 +167,100 @@ class DBWriter:
         )
 
     # -------------------------------------------------
-    # SAVE METHODS (ALERT + EVIDENCE)
+    # ALERT + EVIDENCE (DOĞRU & GÜVENLİ)
     # -------------------------------------------------
     def _save_alert_with_evidence(self, payload: Dict[str, Any]):
         alert_data = payload.get("alert")
-        evidence_list = payload.get("evidence", [])
+        evidence_list: List[Dict[str, Any]] = payload.get("evidence", [])
 
         if not alert_data:
             logger.warning("[DBWriter] ALERT payload missing alert data")
             return
 
+        def _resolve_evidence_from_db(session, alert_obj) -> List[Dict[str, Any]]:
+            """
+            Evidence listesi boşsa:
+            - alert.extra içinden resolve parametrelerini al
+            - log_events tablosundan event_id'leri BUL
+            """
+            extra = alert_data.get("extra") or {}
+            resolve_cfg = extra.get("evidence_resolve") or {}
+
+            if resolve_cfg.get("source") != "log_events":
+                return []
+
+            ip = extra.get("ip")
+            user = extra.get("user")
+            window_seconds = extra.get("window_seconds")
+
+            if not ip or not user or not window_seconds:
+                return []
+
+            end_ts = alert_obj.timestamp
+            start_ts = end_ts - timedelta(seconds=int(window_seconds))
+
+            q = session.query(LogEventModel.id).filter(
+                LogEventModel.timestamp >= start_ts,
+                LogEventModel.timestamp <= end_ts,
+                LogEventModel.ip_address == ip,
+                LogEventModel.user == user,
+            )
+
+            if resolve_cfg.get("event_type"):
+                q = q.filter(LogEventModel.event_type == resolve_cfg["event_type"])
+
+            if resolve_cfg.get("category"):
+                q = q.filter(LogEventModel.category == resolve_cfg["category"])
+
+            rows = q.order_by(LogEventModel.timestamp.asc()).all()
+            if not rows:
+                return []
+
+            resolved = []
+            for idx, (event_id,) in enumerate(rows):
+                resolved.append({
+                    "event_type": "LOG_EVENT",
+                    "event_id": event_id,
+                    "role": "SUPPORT",
+                    "sequence": idx + 1,
+                })
+
+            resolved[-1]["role"] = "TRIGGER"
+            return resolved
+
         def _op(session):
             alert_obj = AlertModel.create(alert_data, session=session)
             session.flush()  
 
-            for ev in evidence_list:
-                evidence_obj = AlertEvidenceModel.create(
-                    alert_id=alert_obj.id,
-                    event_type=ev.get("event_type"),
-                    event_id=ev.get("event_id"),
-                    role=ev.get("role"),
-                    sequence=ev.get("sequence"),
-                )
-                session.add(evidence_obj)
+            if not evidence_list:
+                evs = _resolve_evidence_from_db(session, alert_obj)
+            else:
+                evs = evidence_list
 
-        self._with_retry(
-            lambda session: _op(session),
-            event_type="ALERT",
-        )
+            written = 0
+            for ev in evs:
+                event_id = ev.get("event_id")
+
+                if event_id is None:
+                    logger.warning(
+                        f"[DBWriter] Skipping evidence with missing event_id "
+                        f"(rule={alert_data.get('rule_name')})"
+                    )
+                    continue
+
+                session.add(
+                    AlertEvidenceModel.create(
+                        alert_id=alert_obj.id,
+                        event_type=ev.get("event_type"),
+                        event_id=event_id,
+                        role=ev.get("role"),
+                        sequence=ev.get("sequence"),
+                    )
+                )
+                written += 1
+
+            logger.debug(
+                f"[DBWriter] Alert saved id={alert_obj.id} evidence_written={written}"
+            )
+
+        self._with_retry(_op, event_type="ALERT")
