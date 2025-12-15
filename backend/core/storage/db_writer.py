@@ -15,6 +15,7 @@ from backend.models.network_event_model import NetworkEventModel
 from backend.models.metric_model import MetricModel
 from backend.models.log_model import LogEventModel
 from backend.models.alert_model import AlertModel
+from backend.models.alert_evidence_model import AlertEvidenceModel
 
 
 class DBWriter:
@@ -26,7 +27,8 @@ class DBWriter:
     - Thread-safe Queue
     - Tek worker thread
     - Retry & commit logic
-    - Spam yapmayan debug logging
+    - Alert + Evidence atomik yazım
+    ============================================================
     """
 
     def __init__(self):
@@ -36,7 +38,7 @@ class DBWriter:
         self.worker = threading.Thread(
             target=self._run,
             name="DBWriter",
-            daemon=True
+            daemon=True,
         )
 
     # -------------------------------------------------
@@ -51,14 +53,16 @@ class DBWriter:
         self._stop_event.set()
         self.worker.join(timeout=5)
 
-    def enqueue(self, event: Dict[str, Any]):
+    def enqueue(self, payload: Dict[str, Any]):
         """
-        EventDispatcher / LogDispatcher burayı çağırır
+        EventDispatcher burayı çağırır.
+        Payload:
+        - normal event
+        - veya ALERT + EVIDENCE paketi
         """
-        if not event:
+        if not payload:
             return
-
-        self.queue.put(event)
+        self.queue.put(payload)
 
     # -------------------------------------------------
     # WORKER LOOP
@@ -68,46 +72,52 @@ class DBWriter:
 
         while not self._stop_event.is_set():
             try:
-                event = self.queue.get(timeout=1)
+                payload = self.queue.get(timeout=1)
             except queue.Empty:
                 continue
 
             try:
-                self._handle_event(event)
+                self._handle_payload(payload)
             except Exception:
-                logger.exception("[DBWriter] Unhandled exception while processing event")
+                logger.exception("[DBWriter] Unhandled exception while processing payload")
             finally:
                 self.queue.task_done()
 
     # -------------------------------------------------
-    # EVENT ROUTER
+    # PAYLOAD ROUTER
     # -------------------------------------------------
-    def _handle_event(self, event: Dict[str, Any]):
-        etype = event.get("type", "")
-        logger.debug(f"[DBWriter] Handling event type={etype}")
+    def _handle_payload(self, payload: Dict[str, Any]):
+        etype = payload.get("type")
+        logger.debug(f"[DBWriter] Handling payload type={etype}")
 
         if not etype:
-            logger.debug("[DBWriter] Dropped event with missing type")
+            logger.debug("[DBWriter] Dropped payload with missing type")
             return
 
+        # ---------- RAW EVENTS ----------
         if etype.startswith("PROCESS_"):
-            self._save_process_event(event)
+            self._save_process_event(payload)
+
         elif etype == "LOG_EVENT":
-            logger.debug(f"[DBWriter] Saving LOG_EVENT to database: (kritik) {event}")
-            self._save_log_event(event)
+            self._save_log_event(payload)
+
         elif etype.startswith("NET_") or etype.startswith("CONNECTION_"):
-            self._save_network_event(event)
+            self._save_network_event(payload)
+
         elif etype == "METRIC_SNAPSHOT":
-            self._save_metric_snapshot(event)
-        elif etype.startswith("ALERT_"):
-            self._save_alert_event(event)
+            self._save_metric_snapshot(payload)
+
+        # ---------- ALERT + EVIDENCE ----------
+        elif etype == "ALERT":
+            self._save_alert_with_evidence(payload)
+
         else:
-            logger.debug(f"[DBWriter] Ignored unknown event type={etype}")
+            logger.debug(f"[DBWriter] Ignored unknown payload type={etype}")
 
     # -------------------------------------------------
     # CORE DB OPERATION WITH RETRY
     # -------------------------------------------------
-    def _with_retry(self, fn, event_type: str, retries: int = 3):
+    def _with_retry(self, fn, *, event_type: str, retries: int = 3):
         for attempt in range(1, retries + 1):
             session = SessionLocal()
             try:
@@ -149,35 +159,58 @@ class DBWriter:
         )
 
     # -------------------------------------------------
-    # SAVE METHODS
+    # SAVE METHODS (RAW EVENTS)
     # -------------------------------------------------
     def _save_process_event(self, event: Dict[str, Any]):
         self._with_retry(
             lambda session: ProcessEventModel.create(event, session=session),
-            event_type=event.get("type", "PROCESS")
+            event_type=event.get("type", "PROCESS"),
         )
 
     def _save_network_event(self, event: Dict[str, Any]):
         self._with_retry(
             lambda session: NetworkEventModel.create(event, session=session),
-            event_type=event.get("type", "NETWORK")
+            event_type=event.get("type", "NETWORK"),
         )
 
     def _save_metric_snapshot(self, event: Dict[str, Any]):
         self._with_retry(
             lambda session: MetricModel.create(event, session=session),
-            event_type="METRIC_SNAPSHOT"
+            event_type="METRIC_SNAPSHOT",
         )
 
     def _save_log_event(self, event: Dict[str, Any]):
-        logger.debug(f"[DBWriter] Saving LOG_EVENT to database: {event}")
         self._with_retry(
             lambda session: LogEventModel.create(event, session=session),
-            event_type="LOG_EVENT"
+            event_type="LOG_EVENT",
         )
 
-    def _save_alert_event(self, event: Dict[str, Any]):
+    # -------------------------------------------------
+    # SAVE METHODS (ALERT + EVIDENCE)
+    # -------------------------------------------------
+    def _save_alert_with_evidence(self, payload: Dict[str, Any]):
+        alert_data = payload.get("alert")
+        evidence_list = payload.get("evidence", [])
+
+        if not alert_data:
+            logger.warning("[DBWriter] ALERT payload missing alert data")
+            return
+
+        def _op(session):
+            alert_obj = AlertModel.create(alert_data, session=session)
+            session.flush()  
+
+            for ev in evidence_list:
+                evidence_obj = AlertEvidenceModel.create(
+                    alert_id=alert_obj.id,
+                    event_type=ev.get("event_type"),
+                    event_id=ev.get("event_id"),
+                    role=ev.get("role"),
+                    sequence=ev.get("sequence"),
+                )
+                session.add(evidence_obj)
+
         self._with_retry(
-            lambda session: AlertModel.create(event, session=session),
-            event_type=event.get("type", "ALERT")
+            lambda session: _op(session),
+            event_type="ALERT",
         )

@@ -28,13 +28,20 @@ class RuleEngine:
         )
 
     def process(self, event: Dict[str, Any]) -> List[Dict[str, Any]]:
-        alerts: List[Dict[str, Any]] = []
+        """
+        Returns list of:
+        {
+        "alert": alert_payload,
+        "evidence": [evidence_dicts]
+        }
+        """
+        results: List[Dict[str, Any]] = []
+
         etype = (
             event.get("event_type")
             if event.get("type") == "LOG_EVENT"
             else event.get("type", "")
         )
-
 
         # ---------------------------
         # STATELESS
@@ -42,27 +49,48 @@ class RuleEngine:
         for rule in self.stateless_rules:
             if not rule.supports(etype):
                 continue
+
             try:
                 if rule.match(event):
                     alert = rule.build_alert(event)
-                    alerts.append(alert)
+                    evidence = rule.build_evidence(event)
+
+                    results.append({
+                        "alert": alert,
+                        "evidence": evidence,
+                    })
+
                     logger.info(f"[RULE_ENGINE] Stateless matched: {rule.rule_id}")
+
             except Exception as e:
                 logger.exception(
                     f"[RULE_ENGINE] Stateless rule failed {rule.rule_id}: {e}"
                 )
 
+        # ---------------------------
         # STATEFUL
+        # ---------------------------
         for rule in self.stateful_rules:
             if not rule.supports(etype):
                 continue
+
             try:
                 rule.consume(event, context=self.context)
+
                 produced = rule.evaluate(self.context)
-                alerts.extend(produced)
+                for item in produced:
+                    alert = item.get("alert")
+                    evidence = item.get("evidence", [])
+
+                    results.append({
+                        "alert": alert,
+                        "evidence": evidence,
+                    })
+
             except Exception as e:
                 logger.exception(
                     f"[RULE_ENGINE] Stateful rule failed {rule.rule_id}: {e}"
                 )
 
-        return alerts
+        return results
+

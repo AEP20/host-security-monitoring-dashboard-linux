@@ -68,13 +68,20 @@ class StatelessRule(BaseRule, ABC):
     def build_alert(self, event: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
-    def related_events(self, event: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def build_evidence(
+        self,
+        event: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
         """
-        Varsayılan: bu alert'e sadece current event bağlıdır
+        Default stateless evidence:
+        - current event
+        - TRIGGER
         """
         return [{
             "event_type": event.get("type"),
             "event_id": event.get("id"),
+            "role": "TRIGGER",
+            "sequence": 1,
         }]
 
 
@@ -86,19 +93,17 @@ class StatefulRule(BaseRule, ABC):
     Birden fazla event ile karar veren rule.
     """
 
-    # correlation window (ileride context kullanacak)
     window_seconds: int = 300
 
     @abstractmethod
     def consume(self, event: Dict[str, Any], context: Any) -> None:
-        """
-        Event geldiğinde context/state güncelle
-        """
         pass
 
     @abstractmethod
     def evaluate(self, context: Any) -> List[Dict[str, Any]]:
         """
-        Context'e bakarak 0..N alert üret
+        Alert payload üretir.
+        Evidence bilgisi alert içinde taşınır.
         """
         pass
+
