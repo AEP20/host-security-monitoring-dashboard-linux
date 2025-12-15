@@ -1,14 +1,134 @@
-from datetime import timedelta
+# backend/core/storage/db_writer.py
+
+import threading
+import queue
+import time
 from typing import Dict, Any, List
+from datetime import timedelta
+
+from sqlalchemy.exc import OperationalError
+
 from backend.database import SessionLocal
 from backend.logger import logger
+
+from backend.models.process_event_model import ProcessEventModel
+from backend.models.network_event_model import NetworkEventModel
+from backend.models.metric_model import MetricModel
+from backend.models.log_model import LogEventModel
 from backend.models.alert_model import AlertModel
 from backend.models.alert_evidence_model import AlertEvidenceModel
-from backend.models.log_model import LogEventModel
 
 
 class DBWriter:
-    ...
+    """
+    Sistemdeki TEK DB write noktası
+    """
+
+    def __init__(self):
+        self.queue: queue.Queue[Dict[str, Any]] = queue.Queue()
+        self._stop_event = threading.Event()
+
+        self.worker = threading.Thread(
+            target=self._run,
+            name="DBWriter",
+            daemon=True,
+        )
+
+    # -------------------------------------------------
+    # LIFECYCLE
+    # -------------------------------------------------
+    def start(self):
+        logger.info("[DBWriter] Starting DB writer thread")
+        self.worker.start()
+
+    def stop(self):
+        self._stop_event.set()
+        self.worker.join(timeout=5)
+
+    def enqueue(self, payload: Dict[str, Any]):
+        if payload:
+            self.queue.put(payload)
+
+    # -------------------------------------------------
+    # WORKER LOOP
+    # -------------------------------------------------
+    def _run(self):
+        logger.info("[DBWriter] Worker running")
+
+        while not self._stop_event.is_set():
+            try:
+                payload = self.queue.get(timeout=1)
+            except queue.Empty:
+                continue
+
+            try:
+                self._handle_payload(payload)
+            except Exception:
+                logger.exception("[DBWriter] Payload processing failed")
+            finally:
+                self.queue.task_done()
+
+    # -------------------------------------------------
+    # PAYLOAD ROUTER
+    # -------------------------------------------------
+    def _handle_payload(self, payload: Dict[str, Any]):
+        etype = payload.get("type")
+
+        if not etype:
+            return
+
+        if etype.startswith("PROCESS_"):
+            self._with_retry(
+                lambda s: ProcessEventModel.create(payload, session=s),
+                event_type=etype,
+            )
+
+        elif etype == "LOG_EVENT":
+            self._with_retry(
+                lambda s: LogEventModel.create(payload, session=s),
+                event_type="LOG_EVENT",
+            )
+
+        elif etype.startswith("NET_") or etype.startswith("CONNECTION_"):
+            self._with_retry(
+                lambda s: NetworkEventModel.create(payload, session=s),
+                event_type=etype,
+            )
+
+        elif etype == "METRIC_SNAPSHOT":
+            self._with_retry(
+                lambda s: MetricModel.create(payload, session=s),
+                event_type="METRIC_SNAPSHOT",
+            )
+
+        elif etype == "ALERT":
+            self._save_alert_with_evidence(payload)
+
+        else:
+            logger.debug(f"[DBWriter] Ignored payload type={etype}")
+
+    # -------------------------------------------------
+    # RETRY WRAPPER
+    # -------------------------------------------------
+    def _with_retry(self, fn, *, event_type: str, retries: int = 3):
+        for attempt in range(1, retries + 1):
+            session = SessionLocal()
+            try:
+                fn(session)
+                session.commit()
+                return
+            except OperationalError as e:
+                session.rollback()
+                if "locked" in str(e):
+                    time.sleep(0.1 * attempt)
+                else:
+                    raise
+            except Exception:
+                session.rollback()
+                raise
+            finally:
+                session.close()
+
     # -------------------------------------------------
     # ALERT + EVIDENCE
     # -------------------------------------------------
@@ -17,10 +137,9 @@ class DBWriter:
         evidence_list = payload.get("evidence", [])
 
         if not alert_data:
-            logger.warning("[DBWriter] ALERT payload missing alert data")
             return
 
-        def resolve_evidence(session, alert_obj) -> List[Dict[str, Any]]:
+        def resolve_evidence(session, alert_obj):
             extra = alert_data.get("extra") or {}
             cfg = extra.get("evidence_resolve") or {}
 
@@ -29,53 +148,45 @@ class DBWriter:
 
             ip = extra.get("ip")
             user = extra.get("user")
-            window_seconds = extra.get("window_seconds")
+            window = extra.get("window_seconds")
 
-            if not ip or not window_seconds:
+            if not ip or not window:
                 return []
 
             end_ts = alert_obj.timestamp
-            start_ts = end_ts - timedelta(seconds=int(window_seconds))
+            start_ts = end_ts - timedelta(seconds=int(window))
 
             q = session.query(LogEventModel.id).filter(
                 LogEventModel.timestamp >= start_ts,
                 LogEventModel.timestamp <= end_ts,
-                LogEventModel.ip == ip,
+                LogEventModel.ip_address == ip,
             )
 
             if user:
                 q = q.filter(LogEventModel.user == user)
 
-            event_types = cfg.get("event_types")
-            if event_types:
-                q = q.filter(LogEventModel.event_type.in_(event_types))
-
-            if cfg.get("category"):
-                q = q.filter(LogEventModel.category == cfg["category"])
-
             rows = q.order_by(LogEventModel.timestamp.asc()).all()
             if not rows:
                 return []
 
-            resolved = []
-            for idx, (event_id,) in enumerate(rows):
-                resolved.append({
+            out = []
+            for i, (eid,) in enumerate(rows):
+                out.append({
                     "event_type": "LOG_EVENT",
-                    "event_id": event_id,
+                    "event_id": eid,
                     "role": "SUPPORT",
-                    "sequence": idx + 1,
+                    "sequence": i + 1,
                 })
 
-            resolved[-1]["role"] = "TRIGGER"
-            return resolved
+            out[-1]["role"] = "TRIGGER"
+            return out
 
         def op(session):
             alert_obj = AlertModel.create(alert_data, session=session)
-            session.flush()  # alert.id + timestamp hazır
+            session.flush()
 
             evs = evidence_list or resolve_evidence(session, alert_obj)
 
-            written = 0
             for ev in evs:
                 if not ev.get("event_id"):
                     continue
@@ -89,10 +200,5 @@ class DBWriter:
                         sequence=ev["sequence"],
                     )
                 )
-                written += 1
-
-            logger.debug(
-                f"[DBWriter] Alert saved id={alert_obj.id} evidence_written={written}"
-            )
 
         self._with_retry(op, event_type="ALERT")
