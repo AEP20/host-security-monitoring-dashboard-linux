@@ -7,8 +7,8 @@ class SSHBruteforceRule(StatefulRule):
     """
     AUTH_001 – SSH Bruteforce Detection (Stateful)
 
-    Evidence burada üretilmez.
-    DBWriter, alert.extra içinden resolve eder.
+    Evidence RULE içinde üretilir.
+    DBWriter resolve yapmaz.
     """
 
     rule_id = "AUTH_001"
@@ -17,8 +17,8 @@ class SSHBruteforceRule(StatefulRule):
 
     window_seconds = 60
     threshold = 5
-    
-    event_prefix = "FAILED_"
+
+    event_prefix = "LOG_"
 
     # --------------------------------------------------
     def _is_relevant(self, event: Dict[str, Any]) -> bool:
@@ -34,10 +34,17 @@ class SSHBruteforceRule(StatefulRule):
         return event["ip"], event.get("user") or "UNKNOWN"
 
     def _build_event_ref(self, event: Dict[str, Any]) -> Dict[str, Any]:
-        # DB’ye yazılmadığı için id yok
+        """
+        Context’e koyacağımız event snapshot.
+        DB id yok → problem değil.
+        """
         return {
             "event_type": "LOG_EVENT",
-            "timestamp": event["timestamp"],
+            "timestamp": event.get("timestamp"),
+            "ip": event.get("ip"),
+            "user": event.get("user"),
+            "message": event.get("message"),
+            "log_source": event.get("log_source"),
         }
 
     # --------------------------------------------------
@@ -70,6 +77,30 @@ class SSHBruteforceRule(StatefulRule):
 
             logger.info(f"[SSH_BRUTE][TRIGGER] ip={ip} user={user} count={count}")
 
+            # -------------------------------
+            # EVIDENCE BURADA ÜRETİLİR
+            # -------------------------------
+            related_events: List[Dict[str, Any]] = []
+
+            for idx, ev in enumerate(events):
+                related_events.append({
+                    "event_type": "LOG_EVENT",
+                    "role": "SUPPORT",
+                    "sequence": idx + 1,
+                    "timestamp": ev.get("timestamp"),
+                    "ip": ev.get("ip"),
+                    "user": ev.get("user"),
+                    "message": ev.get("message"),
+                    "log_source": ev.get("log_source"),
+                })
+
+            # Son event TRIGGER
+            if related_events:
+                related_events[-1]["role"] = "TRIGGER"
+
+            # -------------------------------
+            # ALERT
+            # -------------------------------
             alert = self.build_alert_base(
                 alert_type="ALERT_SSH_BRUTEFORCE",
                 message=(
@@ -77,20 +108,15 @@ class SSHBruteforceRule(StatefulRule):
                     f"against user '{user}' "
                     f"({count} failed attempts in {self.window_seconds}s)"
                 ),
+                related_events=related_events, 
                 extra={
                     "ip": ip,
                     "user": user if user != "UNKNOWN" else None,
                     "attempts": count,
                     "window_seconds": self.window_seconds,
-                    "evidence_resolve": {
-                        "source": "log_events",
-                        "category": "AUTH",
-                        "event_types": ["FAILED_LOGIN", "FAILED_AUTH"],
-                    },
                 },
             )
 
-            # Evidence boş → DBWriter resolve edecek
             results.append({
                 "alert": alert,
                 "evidence": [],
