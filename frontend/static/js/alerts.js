@@ -10,9 +10,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     loadAlerts();
 
-    // -----------------------------
-    // LOAD ALERTS
-    // -----------------------------
+    // ==================================================
+    // LOAD ALERT LIST
+    // ==================================================
     function loadAlerts() {
         fetch("/api/alerts")
             .then(res => res.json())
@@ -31,10 +31,12 @@ document.addEventListener("DOMContentLoaded", () => {
                             </span>
                         </td>
                         <td>${alert.rule_name}</td>
-                        <td>${alert.message}</td>
+                        <td title="${alert.message}">
+                            ${alert.message}
+                        </td>
                         <td>
                             <button class="details-btn"
-                                data-json='${JSON.stringify(alert)}'>
+                                data-id="${alert.id}">
                                 View
                             </button>
                         </td>
@@ -44,8 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
 
                 document.querySelectorAll(".details-btn").forEach(btn => {
-                    btn.onclick = () =>
-                        showModal(JSON.parse(btn.dataset.json));
+                    btn.onclick = () => loadAlertDetail(btn.dataset.id);
                 });
             })
             .catch(err => {
@@ -53,18 +54,84 @@ document.addEventListener("DOMContentLoaded", () => {
             });
     }
 
-    // -----------------------------
-    // MODAL
-    // -----------------------------
-    function showModal(obj) {
-        document.getElementById("alerts-modal-body").innerText =
-            JSON.stringify(obj, null, 4);
+    // ==================================================
+    // LOAD ALERT DETAIL + EVIDENCE
+    // ==================================================
+    function loadAlertDetail(alertId) {
+        fetch(`/api/alerts/${alertId}`)
+            .then(res => res.json())
+            .then(json => {
+                if (!json.data) return;
 
+                renderAlertModal(json.data);
+                openModal();
+            })
+            .catch(err => {
+                console.error("[alerts.js] Failed to load alert detail", err);
+            });
+    }
+
+    // ==================================================
+    // RENDER MODAL CONTENT
+    // ==================================================
+    function renderAlertModal(data) {
+        const alert = data.alert;
+        const evidence = data.evidence || [];
+
+        const container = document.getElementById("alerts-modal-body");
+        container.innerHTML = "";
+
+        // -----------------------------
+        // ALERT SUMMARY
+        // -----------------------------
+        const summary = document.createElement("div");
+        summary.className = "alert-summary";
+        summary.innerHTML = `
+            <h3>${alert.rule_name}</h3>
+            <p><strong>Severity:</strong> ${alert.severity}</p>
+            <p><strong>Time:</strong> ${formatTimestamp(alert.timestamp)}</p>
+            <p><strong>Message:</strong> ${alert.message}</p>
+        `;
+        container.appendChild(summary);
+
+        // -----------------------------
+        // EVIDENCE LIST
+        // -----------------------------
+        const evTitle = document.createElement("h4");
+        evTitle.innerText = "Related Events";
+        container.appendChild(evTitle);
+
+        evidence.forEach(ev => {
+            const card = document.createElement("div");
+            card.className = "evidence-card";
+
+            card.innerHTML = `
+                <div class="evidence-header">
+                    <span class="evidence-role ${ev.role.toLowerCase()}">
+                        ${ev.role}
+                    </span>
+                    <span class="evidence-type">
+                        ${ev.event_type}
+                    </span>
+                </div>
+
+                <pre class="evidence-body">
+${JSON.stringify(ev.event, null, 2)}
+                </pre>
+            `;
+
+            container.appendChild(card);
+        });
+    }
+
+    // ==================================================
+    // MODAL CONTROL
+    // ==================================================
+    function openModal() {
         document.getElementById("alerts-modal").style.display = "block";
     }
 
     document.getElementById("alerts-modal-close").onclick = () => {
         document.getElementById("alerts-modal").style.display = "none";
     };
-
 });

@@ -190,3 +190,74 @@ h2 {
     overflow: auto;
     max-height: 500px;
 }
+
+/* ===============================
+   ALERT DETAIL
+================================ */
+
+.alert-summary {
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.alert-summary h3 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+}
+
+/* ===============================
+   EVIDENCE
+================================ */
+
+.evidence-card {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+
+.evidence-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f9fafb;
+    padding: 6px 10px;
+    font-size: 11px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.evidence-role {
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.evidence-role.trigger {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.evidence-role.support {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.evidence-role.context {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.evidence-type {
+    color: var(--text-secondary);
+}
+
+.evidence-body {
+    padding: 10px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 12px;
+    background: #f8f9fa;
+    max-height: 250px;
+    overflow: auto;
+}
