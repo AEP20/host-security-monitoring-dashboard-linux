@@ -61,6 +61,10 @@ class EventDispatcher:
         # ==================================================
         # NORMAL EVENT ROUTING
         # ==================================================
+        
+        if etype == "LOG_EVENT":
+            logger.debug("[DISPATCH] → Routing LOG_EVENT")
+            return self._handle_log(event)
 
         if etype.startswith("PROCESS_"):
             logger.debug(f"[DISPATCH] → Routing PROCESS event {etype}")
@@ -103,4 +107,12 @@ class EventDispatcher:
             return event
         except Exception:
             logger.exception("[DISPATCH][METRIC] Failed")
+            return None
+
+    def _handle_log(self, event):
+        try:
+            services.db_writer.enqueue(event)
+            return event
+        except Exception:
+            logger.exception("[DISPATCH][LOG] Failed")
             return None
