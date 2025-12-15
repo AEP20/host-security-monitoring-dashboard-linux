@@ -3,8 +3,7 @@
 import threading
 import queue
 import time
-from typing import Dict, Any, List
-from datetime import timedelta
+from typing import Dict, Any
 
 from sqlalchemy.exc import OperationalError
 
@@ -21,7 +20,16 @@ from backend.models.alert_evidence_model import AlertEvidenceModel
 
 class DBWriter:
     """
-    Sistemdeki TEK DB write noktası
+    Sistemdeki TEK DB write noktası.
+
+    Sorumluluk:
+    - Gelen payload'ı doğru tabloya yazmak
+    - Transaction / retry yönetmek
+
+    Yapmaz:
+    - Kural çalıştırmak
+    - Evidence üretmek
+    - Correlation yapmak
     """
 
     def __init__(self):
@@ -102,7 +110,7 @@ class DBWriter:
             )
 
         elif etype == "ALERT":
-            self._save_alert_with_evidence(payload)
+            self._save_alert(payload)
 
         else:
             logger.debug(f"[DBWriter] Ignored payload type={etype}")
@@ -130,65 +138,23 @@ class DBWriter:
                 session.close()
 
     # -------------------------------------------------
-    # ALERT + EVIDENCE
+    # ALERT + EVIDENCE (GENERIC)
     # -------------------------------------------------
-    def _save_alert_with_evidence(self, payload: Dict[str, Any]):
+    def _save_alert(self, payload: Dict[str, Any]):
         alert_data = payload.get("alert")
         evidence_list = payload.get("evidence", [])
 
         if not alert_data:
             return
 
-        def resolve_evidence(session, alert_obj):
-            extra = alert_data.get("extra") or {}
-            cfg = extra.get("evidence_resolve") or {}
-
-            if cfg.get("source") != "log_events":
-                return []
-
-            ip = extra.get("ip")
-            user = extra.get("user")
-            window = extra.get("window_seconds")
-
-            if not ip or not window:
-                return []
-
-            end_ts = alert_obj.timestamp
-            start_ts = end_ts - timedelta(seconds=int(window))
-
-            q = session.query(LogEventModel.id).filter(
-                LogEventModel.timestamp >= start_ts,
-                LogEventModel.timestamp <= end_ts,
-                LogEventModel.ip_address == ip,
-            )
-
-            if user:
-                q = q.filter(LogEventModel.user == user)
-
-            rows = q.order_by(LogEventModel.timestamp.asc()).all()
-            if not rows:
-                return []
-
-            out = []
-            for i, (eid,) in enumerate(rows):
-                out.append({
-                    "event_type": "LOG_EVENT",
-                    "event_id": eid,
-                    "role": "SUPPORT",
-                    "sequence": i + 1,
-                })
-
-            out[-1]["role"] = "TRIGGER"
-            return out
-
         def op(session):
+            # Alert
             alert_obj = AlertModel.create(alert_data, session=session)
-            session.flush()
+            session.flush()  # alert_obj.id
 
-            evs = evidence_list or resolve_evidence(session, alert_obj)
-
-            for ev in evs:
-                if not ev.get("event_id"):
+            # Evidence (tamamen opsiyonel)
+            for ev in evidence_list:
+                if not ev.get("event_id") or not ev.get("event_type") or not ev.get("role"):
                     continue
 
                 session.add(
@@ -197,7 +163,7 @@ class DBWriter:
                         event_type=ev["event_type"],
                         event_id=ev["event_id"],
                         role=ev["role"],
-                        sequence=ev["sequence"],
+                        sequence=ev.get("sequence"),
                     )
                 )
 

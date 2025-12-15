@@ -43,15 +43,6 @@ class RuleEngine:
             else event.get("type", "")
         )
 
-        # ==================================================
-        # 🔴 CRITICAL: ADD EVENT TO CONTEXT (ONCE)
-        # ==================================================
-        if self.context is not None:
-            try:
-                self.context.add_event(event)
-            except Exception:
-                logger.exception("[RULE_ENGINE] Failed to add event to context")
-
         # ---------------------------
         # STATELESS
         # ---------------------------
