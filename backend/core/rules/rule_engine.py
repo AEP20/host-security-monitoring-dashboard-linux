@@ -31,8 +31,8 @@ class RuleEngine:
         """
         Returns list of:
         {
-        "alert": alert_payload,
-        "evidence": [evidence_dicts]
+            "alert": alert_payload,
+            "evidence": [evidence_dicts]
         }
         """
         results: List[Dict[str, Any]] = []
@@ -42,6 +42,15 @@ class RuleEngine:
             if event.get("type") == "LOG_EVENT"
             else event.get("type", "")
         )
+
+        # ==================================================
+        # 🔴 CRITICAL: ADD EVENT TO CONTEXT (ONCE)
+        # ==================================================
+        if self.context is not None:
+            try:
+                self.context.add_event(event)
+            except Exception:
+                logger.exception("[RULE_ENGINE] Failed to add event to context")
 
         # ---------------------------
         # STATELESS
@@ -93,4 +102,5 @@ class RuleEngine:
                 )
 
         return results
+
 
