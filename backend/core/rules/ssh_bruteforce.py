@@ -1,6 +1,4 @@
 from typing import Dict, Any, List, Tuple
-from datetime import datetime, timezone
-
 from backend.core.rules.base import StatefulRule
 from backend.logger import logger
 
@@ -9,17 +7,13 @@ class SSHBruteforceRule(StatefulRule):
     """
     AUTH_001 – SSH Bruteforce Detection (Stateful)
 
-    - Context'e event_id değil, sadece timestamp (window hesabı için) koyuyoruz.
-    - Alert üretildiğinde evidence listesini boş bırakıyoruz.
-    - Evidence'ı DBWriter, alert.extra içindeki ip/user/window_seconds bilgisiyle
-      log_events tablosundan resolve edip yazacak.
+    Evidence burada üretilmez.
+    DBWriter, alert.extra içinden resolve eder.
     """
 
     rule_id = "AUTH_001"
     description = "SSH brute force attack detected"
     severity = "HIGH"
-
-    event_prefix = "FAILED_LOGIN"
 
     window_seconds = 60
     threshold = 5
@@ -29,25 +23,19 @@ class SSHBruteforceRule(StatefulRule):
         return (
             event.get("type") == "LOG_EVENT"
             and event.get("category") == "AUTH"
-            and event.get("event_type") == "FAILED_LOGIN"
+            and event.get("event_type") in ("FAILED_LOGIN", "FAILED_AUTH")
             and event.get("ip")
-            and event.get("user")
             and event.get("timestamp")
         )
 
     def _build_key(self, event: Dict[str, Any]) -> Tuple[str, str]:
-        return event["ip"], event["user"]
+        return event["ip"], event.get("user") or "UNKNOWN"
 
     def _build_event_ref(self, event: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Context'e koyduğumuz minimal ref:
-        - id yok (çünkü daha DB’ye yazılmadı)
-        - sadece timestamp: window pruning için yeterli
-        """
+        # DB’ye yazılmadığı için id yok
         return {
-            "id": None,  # intentionally None
             "event_type": "LOG_EVENT",
-            "timestamp": event.get("timestamp"),
+            "timestamp": event["timestamp"],
         }
 
     # --------------------------------------------------
@@ -80,9 +68,6 @@ class SSHBruteforceRule(StatefulRule):
 
             logger.info(f"[SSH_BRUTE][TRIGGER] ip={ip} user={user} count={count}")
 
-            # Alert timestamp'ı DB tarafında default current_time ile set ediliyor.
-            # DBWriter evidence resolve ederken: [alert_timestamp - window_seconds, alert_timestamp]
-            # aralığından ip+user için FAILED_LOGIN arayacak.
             alert = self.build_alert_base(
                 alert_type="ALERT_SSH_BRUTEFORCE",
                 message=(
@@ -92,20 +77,22 @@ class SSHBruteforceRule(StatefulRule):
                 ),
                 extra={
                     "ip": ip,
-                    "user": user,
+                    "user": user if user != "UNKNOWN" else None,
                     "attempts": count,
                     "window_seconds": self.window_seconds,
                     "evidence_resolve": {
                         "source": "log_events",
-                        "event_type": "FAILED_LOGIN",
                         "category": "AUTH",
+                        "event_types": ["FAILED_LOGIN", "FAILED_AUTH"],
                     },
                 },
             )
 
-            # Evidence'ı burada üretmiyoruz.
-            # DBWriter alert'i yazdıktan sonra log_events'den event_id'leri resolve edecek.
-            results.append({"alert": alert, "evidence": []})
+            # Evidence boş → DBWriter resolve edecek
+            results.append({
+                "alert": alert,
+                "evidence": [],
+            })
 
             context.clear_key(rule_id=self.rule_id, key=(ip, user))
             logger.debug(f"[SSH_BRUTE][STATE_CLEARED] ip={ip} user={user}")
