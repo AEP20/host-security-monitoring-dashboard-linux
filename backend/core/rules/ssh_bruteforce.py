@@ -17,6 +17,8 @@ class SSHBruteforceRule(StatefulRule):
 
     window_seconds = 60
     threshold = 5
+    
+    event_prefix = "FAILED_"
 
     # --------------------------------------------------
     def _is_relevant(self, event: Dict[str, Any]) -> bool:
