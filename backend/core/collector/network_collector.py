@@ -29,21 +29,21 @@ class NetworkCollector:
 
         events = []
 
-        logger.debug("[NetworkCollector] Building NET_SNAPSHOT event")
-        events.append({
-            "type": "NET_SNAPSHOT",
-            "timestamp": ts,
-            "interfaces": curr["interfaces"],
-            "connections": curr["connections"]
-        })
+        # logger.debug("[NetworkCollector] Building NET_SNAPSHOT event")
+        # events.append({
+        #     "type": "NET_SNAPSHOT",
+        #     "timestamp": ts,
+        #     "interfaces": curr["interfaces"],
+        #     "connections": curr["connections"]
+        # })
 
-        for iface, stats in curr["interfaces"].items():
-            events.append({
-                "type": "NET_INTERFACE_STATS",
-                "timestamp": ts,
-                "iface": iface,
-                **stats
-            })
+        # for iface, stats in curr["interfaces"].items():
+        #     events.append({
+        #         "type": "NET_INTERFACE_STATS",
+        #         "timestamp": ts,
+        #         "iface": iface,
+        #         **stats
+        #     })
 
         logger.debug("[NetworkCollector] Performing diff for connection events")
         diff_events = self._diff_connection_events(

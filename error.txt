@@ -1,449 +1,194 @@
-
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/sql/elements.py", line 526, in _execute_on_connection
-    return connection._execute_clauseelement(
-           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
-        self, distilled_params, execution_options
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
-    ret = self._execute_context(
-        dialect,
-    ...<8 lines>...
-        cache_hit=cache_hit,
-    )
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
-    return self._exec_single_context(
-           ~~~~~~~~~~~~~~~~~~~~~~~~~^
-        dialect, context, statement, parameters
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
-    self._handle_dbapi_exception(
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
-        e, str_statement, effective_parameters, cursor, context
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 2355, in _handle_dbapi_exception
-    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-    ~~~~~~~~~~~~~~~~~~~~~~~^
-        cursor, str_statement, effective_parameters, context
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
-    cursor.execute(statement, parameters)
-    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
-sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) database is locked
-[SQL: SELECT log_events.id AS log_events_id, log_events.timestamp AS log_events_timestamp, log_events.log_source AS log_events_log_source, log_events.event_type AS log_events_event_type, log_events.category AS log_events_category, log_events.severity AS log_events_severity, log_events.raw_log AS log_events_raw_log, log_events.message AS log_events_message, log_events.user AS log_events_user, log_events.ip_address AS log_events_ip_address, log_events.process_name AS log_events_process_name, log_events.rule_triggered AS log_events_rule_triggered, log_events.extra_data AS log_events_extra_data 
-FROM log_events ORDER BY log_events.timestamp DESC
- LIMIT ? OFFSET ?]
-[parameters: (20, 0)]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-2025-12-13 19:45:11,914 [ERROR] [DISPATCH][NETWORK] Failed: (sqlite3.OperationalError) database is locked
-[SQL: INSERT INTO network_events (timestamp, event_type, pid, process_name, protocol, laddr_ip, laddr_port, raddr_ip, raddr_port, status, reason, description, ports_tried, snapshot_data, alert_id, raw_event) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
-[parameters: ('2025-12-13 16:45:06.902929', 'NET_NEW_CONNECTION', 1531, 'python', 'tcp', '100.65.159.96', 5000, '100.101.7.2', 53152, 'CLOSE_WAIT', None, None, 'null', '{"type": "NET_NEW_CONNECTION", "timestamp": 1765644243.7301083, "pid": 1531, "process_name": "python", "protocol": "tcp", "laddr_ip": "100.65.159.96", "laddr_port": 5000, "raddr_ip": "100.101.7.2", "raddr_port": 53152, "status": "CLOSE_WAIT", "is_listen": false}', None, '{"type": "NET_NEW_CONNECTION", "timestamp": 1765644243.7301083, "pid": 1531, "process_name": "python", "protocol": "tcp", "laddr_ip": "100.65.159.96", "laddr_port": 5000, "raddr_ip": "100.101.7.2", "raddr_port": 53152, "status": "CLOSE_WAIT", "is_listen": false}')]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-2025-12-13 19:45:11,931 [ERROR] Failed to fetch network events
-Traceback (most recent call last):
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-    ~~~~~~~~~~~~~~~~~~~~~~~^
-        cursor, str_statement, effective_parameters, context
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
-    cursor.execute(statement, parameters)
-    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
-sqlite3.OperationalError: database is locked
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/opt/HIDS/backend/api/network_api.py", line 42, in get_network_events
-    rows = [r.to_dict() for r in q.all()]
-                                 ~~~~~^^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/orm/query.py", line 2704, in all
-    return self._iter().all()  # type: ignore
-           ~~~~~~~~~~^^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/orm/query.py", line 2857, in _iter
-    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
-                                                  ~~~~~~~~~~~~~~~~~~~~^
-        statement,
-        ^^^^^^^^^^
-        params,
-        ^^^^^^^
-        execution_options={"_sa_orm_load_options": self.load_options},
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
-    return self._execute_internal(
-           ~~~~~~~~~~~~~~~~~~~~~~^
-        statement,
-        ^^^^^^^^^^
-    ...<4 lines>...
-        _add_event=_add_event,
-        ^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
-    result: Result[Any] = compile_state_cls.orm_execute_statement(
-                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
-        self,
-        ^^^^^
-    ...<4 lines>...
-        conn,
-        ^^^^^
-    )
-    ^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
-    result = conn.execute(
-        statement, params or {}, execution_options=execution_options
-    )
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
-    return meth(
-        self,
-        distilled_parameters,
-        execution_options or NO_OPTIONS,
-    )
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/sql/elements.py", line 526, in _execute_on_connection
-    return connection._execute_clauseelement(
-           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
-        self, distilled_params, execution_options
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
-    ret = self._execute_context(
-        dialect,
-    ...<8 lines>...
-        cache_hit=cache_hit,
-    )
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
-    return self._exec_single_context(
-           ~~~~~~~~~~~~~~~~~~~~~~~~~^
-        dialect, context, statement, parameters
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
-    self._handle_dbapi_exception(
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
-        e, str_statement, effective_parameters, cursor, context
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 2355, in _handle_dbapi_exception
-    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-    ~~~~~~~~~~~~~~~~~~~~~~~^
-        cursor, str_statement, effective_parameters, context
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
-    cursor.execute(statement, parameters)
-    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
-sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) database is locked
-[SQL: SELECT network_events.id AS network_events_id, network_events.timestamp AS network_events_timestamp, network_events.event_type AS network_events_event_type, network_events.pid AS network_events_pid, network_events.process_name AS network_events_process_name, network_events.protocol AS network_events_protocol, network_events.laddr_ip AS network_events_laddr_ip, network_events.laddr_port AS network_events_laddr_port, network_events.raddr_ip AS network_events_raddr_ip, network_events.raddr_port AS network_events_raddr_port, network_events.status AS network_events_status, network_events.reason AS network_events_reason, network_events.description AS network_events_description, network_events.ports_tried AS network_events_ports_tried, network_events.snapshot_data AS network_events_snapshot_data, network_events.alert_id AS network_events_alert_id, network_events.raw_event AS network_events_raw_event 
-FROM network_events ORDER BY network_events.timestamp DESC]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-2025-12-13 19:45:12,078 [DEBUG] [DISPATCH] Received event type=
-2025-12-13 19:45:12,078 [ERROR] [metrics/latest] Exception: (sqlite3.OperationalError) database is locked
-[SQL: SELECT metrics.id AS metrics_id, metrics.timestamp AS metrics_timestamp, metrics.snapshot AS metrics_snapshot 
-FROM metrics ORDER BY metrics.timestamp DESC
- LIMIT ? OFFSET ?]
-[parameters: (1, 0)]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-Traceback (most recent call last):
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-    ~~~~~~~~~~~~~~~~~~~~~~~^
-        cursor, str_statement, effective_parameters, context
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
-    cursor.execute(statement, parameters)
-    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
-sqlite3.OperationalError: database is locked
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/opt/HIDS/backend/api/metrics_api.py", line 27, in get_latest_metrics
-    .first()
-     ~~~~~^^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/orm/query.py", line 2759, in first
-    return self.limit(1)._iter().first()  # type: ignore
-           ~~~~~~~~~~~~~~~~~~~^^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/orm/query.py", line 2857, in _iter
-    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
-                                                  ~~~~~~~~~~~~~~~~~~~~^
-        statement,
-        ^^^^^^^^^^
-        params,
-        ^^^^^^^
-        execution_options={"_sa_orm_load_options": self.load_options},
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
-    return self._execute_internal(
-           ~~~~~~~~~~~~~~~~~~~~~~^
-        statement,
-        ^^^^^^^^^^
-    ...<4 lines>...
-        _add_event=_add_event,
-        ^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
-    result: Result[Any] = compile_state_cls.orm_execute_statement(
-                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
-        self,
-        ^^^^^
-    ...<4 lines>...
-        conn,
-        ^^^^^
-    )
-    ^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
-    result = conn.execute(
-        statement, params or {}, execution_options=execution_options
-    )
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
-    return meth(
-        self,
-        distilled_parameters,
-        execution_options or NO_OPTIONS,
-    )
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/sql/elements.py", line 526, in _execute_on_connection
-    return connection._execute_clauseelement(
-           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
-        self, distilled_params, execution_options
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
-    ret = self._execute_context(
-        dialect,
-    ...<8 lines>...
-        cache_hit=cache_hit,
-    )
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
-    return self._exec_single_context(
-           ~~~~~~~~~~~~~~~~~~~~~~~~~^
-        dialect, context, statement, parameters
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
-    self._handle_dbapi_exception(
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
-        e, str_statement, effective_parameters, cursor, context
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 2355, in _handle_dbapi_exception
-    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-    ~~~~~~~~~~~~~~~~~~~~~~~^
-        cursor, str_statement, effective_parameters, context
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/opt/HIDS/venv/lib/python3.13/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
-    cursor.execute(statement, parameters)
-    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
-sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) database is locked
-[SQL: SELECT metrics.id AS metrics_id, metrics.timestamp AS metrics_timestamp, metrics.snapshot AS metrics_snapshot 
-FROM metrics ORDER BY metrics.timestamp DESC
- LIMIT ? OFFSET ?]
-[parameters: (1, 0)]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-2025-12-13 19:45:12,079 [ERROR] [DISPATCH][PROCESS] Failed: (sqlite3.OperationalError) database is locked
-[SQL: INSERT INTO process_events (timestamp, event_type, pid, ppid, process_name, exe, cmdline, username, create_time, cpu_percent, memory_rss, memory_vms, old_value, new_value, exe_deleted, snapshot_data, alert_id, raw_event) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
-[parameters: ('2025-12-13 16:45:07.049081', 'PROCESS_NEW', 30823, 2, 'kworker/0:0-events', None, '', 'root', '1765644253.67', '0.0', '0', '0', 'None', 'None', 'false', '{"type": "PROCESS_NEW", "timestamp": "2025-12-13T16:45:07.041650Z", "pid": 30823, "ppid": 2, "name": "kworker/0:0-events", "exe": null, "cmdline": [] ... (83 characters truncated) ... ": 1765644284.4753056, "cpu_percent": 0.0, "memory_rss": 0, "memory_vms": 0, "exe_deleted": false, "exe_hash": null, "cwd": null, "open_files": null}', None, '{"type": "PROCESS_NEW", "timestamp": "2025-12-13T16:45:07.041650Z", "pid": 30823, "ppid": 2, "name": "kworker/0:0-events", "exe": null, "cmdline": [] ... (83 characters truncated) ... ": 1765644284.4753056, "cpu_percent": 0.0, "memory_rss": 0, "memory_vms": 0, "exe_deleted": false, "exe_hash": null, "cwd": null, "open_files": null}')]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-2025-12-13 19:45:12,130 [DEBUG] [metrics/latest] Querying latest metric snapshot
-2025-12-13 19:45:12,151 [DEBUG] [DISPATCH] Received event type=NET_NEW_CONNECTION
-2025-12-13 19:45:12,163 [DEBUG] [logs/internal] Reading internal logs from /var/log/hids/app.log
-2025-12-13 19:45:12,268 [DEBUG] [logs/events] Query params: {'limit': '50'}
-2025-12-13 19:45:12,330 [DEBUG] [DISPATCH] Received event type=PROCESS_TERMINATED
-2025-12-13 19:45:12,361 [INFO] [threads] Thread health endpoint called
-2025-12-13 19:45:12,362 [DEBUG] [DISPATCH] → Routing NETWORK event NET_NEW_CONNECTION
-2025-12-13 19:45:12,389 [DEBUG] [DISPATCH] → Routing PROCESS event PROCESS_TERMINATED
-2025-12-13 19:45:12,400 [INFO] [logs/internal] Returning last 500 lines (max 50000 bytes)
-2025-12-13 19:45:12,428 [DEBUG] [DISPATCH][NETWORK] Handling network event: NET_NEW_CONNECTION
-2025-12-13 19:45:12,428 [DEBUG] [DISPATCH][PROCESS] Saving process event
-2025-12-13 19:45:12,461 [INFO] [system_status] System status endpoint called
-2025-12-13 19:45:12,471 [INFO] [logs/events] Returned 20 events (limit=20, offset=0)
-
-
-
-
-
-🥇 AŞAMA 1 — DB Write noktalarını tek merkeze toplama
-Amaç
-
-Sistemde tek bir “write entry point” olsun
-
-Yapılacaklar
-1️⃣ LogDispatcher → DB write kaldırılacak
-
-📍 Dosya:
-
-backend/core/parser/LogDispatcher.py
-
-
-❌ ŞU KOD GİDİYOR:
-
-self.save_to_db(event)
-
-
-❌ ŞU METOT TAMAMEN SİLİNECEK:
-
-def save_to_db(self, event):
-    ...
-
-
-✅ dispatch() artık sadece event üretip döndürecek:
-
-return event
-
-
-📌 Artık:
-
-LogDispatcher = parser + normalizer
-
-DB yok
-
-2️⃣ Log event’leri EventDispatcher’a yönlendirme
-
-LogCollector (muhtemelen):
-
-event = log_dispatcher.dispatch(...)
-dispatcher.dispatch(event)
-
-
-👉 Böylece log event’leri de EventDispatcher’dan geçecek
-
-Bu aşama sonunda
-
-✔️ DB write yapanlar:
-
-EventDispatcher (tek merkez)
-
-❌ DB write yapanlar:
-
-LogDispatcher ❌
-
-Collector ❌
-
-🥈 AŞAMA 2 — DBWriter (Queue + Thread) ekleme (asıl best practice)
-
-Şimdi en kritik aşamaya geliyoruz.
-
-3️⃣ DBWriter servisini oluşturma
-
-📍 Yeni klasör:
-
-backend/core/storage/
-    └── db_writer.py
-
-DBWriter’ın sorumlulukları:
-
-queue.Queue dinler
-
-Event tipine göre doğru model ile yazar
-
-Retry + commit kontrolü yapar
-
-Tek thread
-
-📌 SQLite için olmazsa olmaz
-
-4️⃣ EventDispatcher → DB’ye yazmayacak
-
-ŞU SATIRLAR TARİH OLUYOR:
-
-ProcessEventModel.create(event)
-NetworkEventModel.create(event)
-save_metric_snapshot(event)
-
-
-Yerine:
-
-db_writer.enqueue(event)
-
-
-📌 EventDispatcher artık:
-
-router
-
-sınıflandırıcı
-
-storage-aware değil
-
-🥉 AŞAMA 3 — database.py (production-grade SQLite)
-
-📍 Dosya:
-
-backend/database.py
-
-Yapılacaklar
-✅ WAL modu
-✅ timeout
-✅ check_same_thread=False
-✅ tek engine
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={
-        "check_same_thread": False,
-        "timeout": 30
-    },
-    pool_pre_ping=True
-)
-
-
-Startup’ta:
-
-PRAGMA journal_mode=WAL;
-PRAGMA synchronous=NORMAL;
-PRAGMA temp_store=MEMORY;
-
-
-📌 Bu ayarlar SQLite’ı ayakta tutar
-
-🏁 AŞAMA 4 — API’leri “iyi vatandaş” yapma
-
-📍 Dosyalar:
-
-backend/api/*.py
-
-Kurallar
-
-Her endpoint:
-
-yeni session
-
-kısa SELECT
-
-hemen close
-
-Opsiyonel:
-
-pagination
-
-LIMIT zorunlu
-
-📌 DBWriter çalışırken API asla write yapmaz
+-14 12:20:12,225 [INFO] [system_status] System status endpoint called
+2025-12-14 12:20:12,226 [DEBUG] [metrics/latest] Querying latest metric snapshot
+2025-12-14 12:20:12,228 [DEBUG] [logs/internal] Reading internal logs from /var/log/hids/app.log
+2025-12-14 12:20:12,228 [INFO] [metrics/latest] Latest metric found: True
+2025-12-14 12:20:12,229 [DEBUG] [metrics/latest] Metric enrichment completed
+2025-12-14 12:20:12,230 [DEBUG] [logs/events] Query params: {'limit': '20'}
+2025-12-14 12:20:12,232 [INFO] [threads] Thread health endpoint called
+2025-12-14 12:20:12,232 [INFO] [logs/internal] Returning last 6 lines (max 50000 bytes)
+2025-12-14 12:20:12,234 [INFO] [logs/events] Returned 20 events (limit=20, offset=0)
+2025-12-14 12:20:12,377 [DEBUG] [system_status] CPU=3.3%, MEM=11.3%
+2025-12-14 12:20:12,378 [INFO] [system_status] Returning system status successfully
+2025-12-14 12:20:13,220 [DEBUG] [logs/internal] Reading internal logs from /var/log/hids/app.log
+2025-12-14 12:20:13,221 [INFO] [logs/internal] Returning last 12 lines (max 50000 bytes)
+2025-12-14 12:20:13,222 [DEBUG] [logs/events] Query params: {'limit': '50'}
+2025-12-14 12:20:13,225 [INFO] [logs/events] Returned 50 events (limit=50, offset=0)
+2025-12-14 12:20:13,787 [DEBUG] [LogsCollector] collect() invoked
+2025-12-14 12:20:13,787 [DEBUG] [LogsCollector] auth: read 5 new lines
+2025-12-14 12:20:13,787 [INFO] [LogsCollector] auth: collected 5 new lines
+2025-12-14 12:20:13,787 [DEBUG] [LogsCollector] syslog: read 7 new lines
+2025-12-14 12:20:13,787 [INFO] [LogsCollector] syslog: collected 7 new lines
+2025-12-14 12:20:13,788 [DEBUG] [LogsCollector] Offsets saved after collection
+2025-12-14 12:20:13,788 [DEBUG] [DISPATCH] Received event type=LOG_EVENT
+2025-12-14 12:20:13,788 [DEBUG] [DISPATCH] Received event type=LOG_EVENT
+2025-12-14 12:20:13,788 [DEBUG] [DISPATCH] Received event type=LOG_EVENT
+2025-12-14 12:20:13,788 [DEBUG] [DISPATCH] Received event type=LOG_EVENT
+2025-12-14 12:20:13,788 [DEBUG] [DISPATCH] Received event type=LOG_EVENT
+2025-12-14 12:20:14,323 [INFO] [system_status] System status endpoint called
+2025-12-14 12:20:14,324 [DEBUG] [metrics/latest] Querying latest metric snapshot
+2025-12-14 12:20:14,325 [DEBUG] [logs/internal] Reading internal logs from /var/log/hids/app.log
+2025-12-14 12:20:14,326 [INFO] [metrics/latest] Latest metric found: True
+2025-12-14 12:20:14,327 [DEBUG] [logs/events] Query params: {'limit': '20'}
+2025-12-14 12:20:14,327 [DEBUG] [metrics/latest] Metric enrichment completed
+2025-12-14 12:20:14,328 [INFO] [logs/internal] Returning last 31 lines (max 50000 bytes)
+2025-12-14 12:20:14,328 [INFO] [threads] Thread health endpoint called
+2025-12-14 12:20:14,331 [INFO] [logs/events] Returned 20 events (limit=20, offset=0)
+2025-12-14 12:20:14,475 [DEBUG] [system_status] CPU=3.3%, MEM=11.3%
+2025-12-14 12:20:14,475 [INFO] [system_status] Returning system status successfully
+2025-12-14 12:20:16,788 [DEBUG] [LogsCollector] collect() invoked
+2025-12-14 12:20:16,791 [DEBUG] [LogsCollector] syslog: read 5 new lines
+2025-12-14 12:20:16,791 [INFO] [LogsCollector] syslog: collected 5 new lines
+2025-12-14 12:20:16,792 [DEBUG] [LogsCollector] Offsets saved after collection
+2025-12-14 12:20:17,324 [INFO] [system_status] System status endpoint called
+2025-12-14 12:20:17,325 [DEBUG] [metrics/latest] Querying latest metric snapshot
+2025-12-14 12:20:17,327 [DEBUG] [logs/internal] Reading internal logs from /var/log/hids/app.log
+2025-12-14 12:20:17,328 [DEBUG] [logs/events] Query params: {'limit': '20'}
+2025-12-14 12:20:17,329 [INFO] [threads] Thread health endpoint called
+2025-12-14 12:20:17,330 [INFO] [logs/internal] Returning last 46 lines (max 50000 bytes)
+2025-12-14 12:20:17,331 [INFO] [metrics/latest] Latest metric found: True
+2025-12-14 12:20:17,331 [DEBUG] [metrics/latest] Metric enrichment completed
+2025-12-14 12:20:17,333 [INFO] [logs/events] Returned 20 events (limit=20, offset=0)
+2025-12-14 12:20:17,338 [DEBUG] [logs/events] Query params: {'limit': '50'}
+2025-12-14 12:20:17,340 [INFO] [logs/events] Returned 50 events (limit=50, offset=0)
+2025-12-14 12:20:17,343 [DEBUG] [logs/internal] Reading internal logs from /var/log/hids/app.log
+2025-12-14 12:20:17,344 [INFO] [logs/internal] Returning last 53 lines (max 50000 bytes)
+2025-12-14 12:20:17,476 [DEBUG] [system_status] CPU=6.6%, MEM=11.3%
+2025-12-14 12:20:17,476 [INFO] [system_status] Returning system status successfully
+2025-12-14 12:20:19,792 [DEBUG] [LogsCollector] collect() invoked
+2025-12-14 12:20:19,792 [DEBUG] [LogsCollector] syslog: read 7 new lines
+2025-12-14 12:20:19,792 [INFO] [LogsCollector] syslog: collected 7 new lines
+2025-12-14 12:20:19,793 [DEBUG] [LogsCollector] Offsets saved after collection
+2025-12-14 12:20:20,335 [INFO] [system_status] System status endpoint called
+2025-12-14 12:20:20,335 [DEBUG] [metrics/latest] Querying latest metric snapshot
+2025-12-14 12:20:20,336 [DEBUG] [logs/internal] Reading internal logs from /var/log/hids/app.log
+2025-12-14 12:20:20,337 [DEBUG] [logs/events] Query params: {'limit': '20'}
+2025-12-14 12:20:20,339 [INFO] [logs/internal] Returning last 64 lines (max 50000 bytes)
+2025-12-14 12:20:20,339 [INFO] [threads] Thread health endpoint called
+2025-12-14 12:20:20,340 [INFO] [metrics/latest] Latest metric found: True
+2025-12-14 12:20:20,341 [DEBUG] [metrics/latest] Metric enrichment completed
+2025-12-14 12:20:20,342 [INFO] [logs/events] Returned 20 events (limit=20, offset=0)
+2025-12-14 12:20:20,491 [DEBUG] [system_status] CPU=1.6%, MEM=11.3%
+2025-12-14 12:20:20,492 [INFO] [system_status] Returning system status successfully
+2025-12-14 12:20:22,339 [DEBUG] [logs/internal] Reading internal logs from /var/log/hids/app.log
+2025-12-14 12:20:22,340 [DEBUG] [logs/events] Query params: {'limit': '50'}
+2025-12-14 12:20:22,341 [INFO] [logs/internal] Returning last 73 lines (max 50000 bytes)
+2025-12-14 12:20:22,343 [INFO] [logs/events] Returned 50 events (limit=50, offset=0)
+2025-12-14 12:20:22,793 [DEBUG] [LogsCollector] collect() invoked
+2025-12-14 12:20:22,793 [DEBUG] [LogsCollector] syslog: read 8 new lines
+2025-12-14 12:20:22,793 [INFO] [LogsCollector] syslog: collected 8 new lines
+2025-12-14 12:20:22,794 [DEBUG] [LogsCollector] Offsets saved after collection
+2025-12-14 12:20:23,322 [INFO] [system_status] System status endpoint called
+2025-12-14 12:20:23,323 [DEBUG] [metrics/latest] Querying latest metric snapshot
+2025-12-14 12:20:23,324 [DEBUG] [logs/internal] Reading internal logs from /var/log/hids/app.log
+2025-12-14 12:20:23,325 [DEBUG] [logs/events] Query params: {'limit': '20'}
+2025-12-14 12:20:23,327 [INFO] [threads] Thread health endpoint called
+2025-12-14 12:20:23,327 [INFO] [metrics/latest] Latest metric found: True
+2025-12-14 12:20:23,327 [DEBUG] [metrics/latest] Metric enrichment completed
+2025-12-14 12:20:23,329 [INFO] [logs/internal] Returning last 86 lines (max 50000 bytes)
+2025-12-14 12:20:23,330 [INFO] [logs/events] Returned 20 events (limit=20, offset=0)
+2025-12-14 12:20:23,474 [DEBUG] [system_status] CPU=3.3%, MEM=11.3%
+2025-12-14 12:20:23,475 [INFO] [system_status] Returning system status successfully
+2025-12-14 12:20:25,794 [DEBUG] [LogsCollector] collect() invoked
+2025-12-14 12:20:25,794 [DEBUG] [LogsCollector] syslog: read 5 new lines
+2025-12-14 12:20:25,795 [INFO] [LogsCollector] syslog: collected 5 new lines
+2025-12-14 12:20:25,795 [DEBUG] [LogsCollector] Offsets saved after collection
+2025-12-14 12:20:25,806 [DEBUG] [NetworkCollector] step() invoked — loading previous state
+2025-12-14 12:20:25,806 [DEBUG] [NetworkCollector] Loaded previous state
+2025-12-14 12:20:25,806 [DEBUG] [NetworkCollector] Collecting snapshot: interfaces + connections
+2025-12-14 12:20:25,806 [DEBUG] [NetworkCollector] Collecting per-interface IO stats
+2025-12-14 12:20:25,807 [DEBUG] [NetworkCollector] IO snapshot collected for 5 interfaces
+2025-12-14 12:20:25,807 [DEBUG] [NetworkCollector] Collecting active inet connections
+2025-12-14 12:20:25,811 [DEBUG] [NetworkCollector] Detected 69 inet connections
+2025-12-14 12:20:25,811 [DEBUG] [NETDEBUG] prev_connections=61, curr_connections=69
+2025-12-14 12:20:25,811 [DEBUG] [NetworkCollector] Building NET_SNAPSHOT event
+2025-12-14 12:20:25,811 [DEBUG] [NetworkCollector] Performing diff for connection events
+2025-12-14 12:20:25,811 [DEBUG] [NetworkCollector] Starting diff-engine
+2025-12-14 12:20:25,812 [DEBUG] [NETDEBUG][DIFF] prev=61, curr=69 | prev_keys=61, curr_keys=69
+2025-12-14 12:20:25,812 [DEBUG] [NETIGNORE] Ignoring TIME_WAIT connection: {'pid': None, 'process_name': 'unknown', 'protocol': 'tcp', 'laddr_ip': '100.65.159.96', 'laddr_port': 5000, 'raddr_ip': '100.101.7.2', 'raddr_port': 58718, 'status': 'TIME_WAIT', 'is_listen': False}
+2025-12-14 12:20:25,812 [DEBUG] [NETIGNORE] Ignoring TIME_WAIT connection: {'pid': None, 'process_name': 'unknown', 'protocol': 'tcp', 'laddr_ip': '100.65.159.96', 'laddr_port': 5000, 'raddr_ip': '100.101.7.2', 'raddr_port': 58702, 'status': 'TIME_WAIT', 'is_listen': False}
+2025-12-14 12:20:25,812 [DEBUG] [NETIGNORE] Ignoring TIME_WAIT connection: {'pid': None, 'process_name': 'unknown', 'protocol': 'tcp', 'laddr_ip': '100.65.159.96', 'laddr_port': 5000, 'raddr_ip': '100.101.7.2', 'raddr_port': 58716, 'status': 'TIME_WAIT', 'is_listen': False}
+2025-12-14 12:20:25,812 [DEBUG] [NETIGNORE] Ignoring TIME_WAIT connection: {'pid': None, 'process_name': 'unknown', 'protocol': 'tcp', 'laddr_ip': '100.65.159.96', 'laddr_port': 5000, 'raddr_ip': '100.101.7.2', 'raddr_port': 58700, 'status': 'TIME_WAIT', 'is_listen': False}
+2025-12-14 12:20:25,812 [DEBUG] [NETIGNORE] Ignoring TIME_WAIT connection: {'pid': None, 'process_name': 'unknown', 'protocol': 'tcp', 'laddr_ip': '100.65.159.96', 'laddr_port': 5000, 'raddr_ip': '100.101.7.2', 'raddr_port': 58714, 'status': 'TIME_WAIT', 'is_listen': False}
+2025-12-14 12:20:25,812 [DEBUG] [NETIGNORE] Ignoring TIME_WAIT connection: {'pid': None, 'process_name': 'unknown', 'protocol': 'tcp', 'laddr_ip': '100.65.159.96', 'laddr_port': 5000, 'raddr_ip': '100.101.7.2', 'raddr_port': 58699, 'status': 'TIME_WAIT', 'is_listen': False}
+2025-12-14 12:20:25,812 [DEBUG] [NETIGNORE] Ignoring TIME_WAIT connection: {'pid': None, 'process_name': 'unknown', 'protocol': 'tcp', 'laddr_ip': '100.65.159.96', 'laddr_port': 5000, 'raddr_ip': '100.101.7.2', 'raddr_port': 58701, 'status': 'TIME_WAIT', 'is_listen': False}
+2025-12-14 12:20:25,812 [DEBUG] [NETIGNORE] Ignoring TIME_WAIT connection: {'pid': None, 'process_name': 'unknown', 'protocol': 'tcp', 'laddr_ip': '100.65.159.96', 'laddr_port': 5000, 'raddr_ip': '100.101.7.2', 'raddr_port': 58696, 'status': 'TIME_WAIT', 'is_listen': False}
+2025-12-14 12:20:25,812 [DEBUG] [NETDEBUG][DIFF] produced=0 | new=0, closed=0, listen_new=0, listen_closed=0
+2025-12-14 12:20:25,812 [INFO] [NetworkCollector] step() produced 6 events (0 diff-events)
+2025-12-14 12:20:25,814 [DEBUG] [NETDEBUG] State saved: /var/lib/hids/network_state.json | connections=69
+2025-12-14 12:20:25,814 [DEBUG] [DISPATCH] Received event type=NET_SNAPSHOT
+2025-12-14 12:20:25,814 [DEBUG] [DISPATCH] → Routing NETWORK event NET_SNAPSHOT
+2025-12-14 12:20:25,814 [DEBUG] [DISPATCH][NETWORK] Enqueue network event: NET_SNAPSHOT
+2025-12-14 12:20:25,814 [ERROR] [DISPATCH][NETWORK] Failed: 'NoneType' object has no attribute 'enqueue'
+2025-12-14 12:20:25,814 [DEBUG] [DISPATCH] Received event type=NET_INTERFACE_STATS
+2025-12-14 12:20:25,814 [DEBUG] [DISPATCH] → Routing NETWORK event NET_INTERFACE_STATS
+2025-12-14 12:20:25,814 [DEBUG] [DISPATCH][NETWORK] Enqueue network event: NET_INTERFACE_STATS
+2025-12-14 12:20:25,814 [ERROR] [DISPATCH][NETWORK] Failed: 'NoneType' object has no attribute 'enqueue'
+2025-12-14 12:20:25,814 [DEBUG] [DISPATCH] Received event type=NET_INTERFACE_STATS
+2025-12-14 12:20:25,814 [DEBUG] [DISPATCH] → Routing NETWORK event NET_INTERFACE_STATS
+2025-12-14 12:20:25,814 [DEBUG] [DISPATCH][NETWORK] Enqueue network event: NET_INTERFACE_STATS
+2025-12-14 12:20:25,814 [ERROR] [DISPATCH][NETWORK] Failed: 'NoneType' object has no attribute 'enqueue'
+2025-12-14 12:20:25,814 [DEBUG] [DISPATCH] Received event type=NET_INTERFACE_STATS
+2025-12-14 12:20:25,814 [DEBUG] [DISPATCH] → Routing NETWORK event NET_INTERFACE_STATS
+2025-12-14 12:20:25,814 [DEBUG] [DISPATCH][NETWORK] Enqueue network event: NET_INTERFACE_STATS
+2025-12-14 12:20:25,814 [ERROR] [DISPATCH][NETWORK] Failed: 'NoneType' object has no attribute 'enqueue'
+2025-12-14 12:20:25,814 [DEBUG] [DISPATCH] Received event type=NET_INTERFACE_STATS
+2025-12-14 12:20:25,814 [DEBUG] [DISPATCH] → Routing NETWORK event NET_INTERFACE_STATS
+2025-12-14 12:20:25,814 [DEBUG] [DISPATCH][NETWORK] Enqueue network event: NET_INTERFACE_STATS
+2025-12-14 12:20:25,814 [ERROR] [DISPATCH][NETWORK] Failed: 'NoneType' object has no attribute 'enqueue'
+2025-12-14 12:20:25,814 [DEBUG] [DISPATCH] Received event type=NET_INTERFACE_STATS
+2025-12-14 12:20:25,814 [DEBUG] [DISPATCH] → Routing NETWORK event NET_INTERFACE_STATS
+2025-12-14 12:20:25,814 [DEBUG] [DISPATCH][NETWORK] Enqueue network event: NET_INTERFACE_STATS
+2025-12-14 12:20:25,814 [ERROR] [DISPATCH][NETWORK] Failed: 'NoneType' object has no attribute 'enqueue'
+2025-12-14 12:20:25,991 [DEBUG] [ProcessCollector] step() invoked
+2025-12-14 12:20:25,991 [DEBUG] [ProcessCollector] Collecting process snapshot
+2025-12-14 12:20:26,070 [INFO] [ProcessCollector] Snapshot collected (212 processes)
+2025-12-14 12:20:26,070 [INFO] [ProcessCollector] Diff detected: new=3, terminated=2
+2025-12-14 12:20:26,071 [DEBUG] [ProcessCollector] Diff produced 5 events
+2025-12-14 12:20:26,078 [DEBUG] [ProcessCollector] Snapshot saved to cache
+2025-12-14 12:20:26,078 [INFO] [ProcessCollector] step() returned 5 events
+2025-12-14 12:20:26,078 [DEBUG] [DISPATCH] Received event type=PROCESS_NEW
+2025-12-14 12:20:26,078 [DEBUG] [DISPATCH] → Routing PROCESS event PROCESS_NEW
+2025-12-14 12:20:26,078 [DEBUG] [DISPATCH][PROCESS] Enqueue process event
+2025-12-14 12:20:26,078 [ERROR] [DISPATCH][PROCESS] Failed: 'NoneType' object has no attribute 'enqueue'
+2025-12-14 12:20:26,078 [DEBUG] [DISPATCH] Received event type=PROCESS_NEW
+2025-12-14 12:20:26,078 [DEBUG] [DISPATCH] → Routing PROCESS event PROCESS_NEW
+2025-12-14 12:20:26,078 [DEBUG] [DISPATCH][PROCESS] Enqueue process event
+2025-12-14 12:20:26,078 [ERROR] [DISPATCH][PROCESS] Failed: 'NoneType' object has no attribute 'enqueue'
+2025-12-14 12:20:26,078 [DEBUG] [DISPATCH] Received event type=PROCESS_NEW
+2025-12-14 12:20:26,078 [DEBUG] [DISPATCH] → Routing PROCESS event PROCESS_NEW
+2025-12-14 12:20:26,078 [DEBUG] [DISPATCH][PROCESS] Enqueue process event
+2025-12-14 12:20:26,078 [ERROR] [DISPATCH][PROCESS] Failed: 'NoneType' object has no attribute 'enqueue'
+2025-12-14 12:20:26,078 [DEBUG] [DISPATCH] Received event type=PROCESS_TERMINATED
+2025-12-14 12:20:26,078 [DEBUG] [DISPATCH] → Routing PROCESS event PROCESS_TERMINATED
+2025-12-14 12:20:26,078 [DEBUG] [DISPATCH][PROCESS] Enqueue process event
+2025-12-14 12:20:26,078 [ERROR] [DISPATCH][PROCESS] Failed: 'NoneType' object has no attribute 'enqueue'
+2025-12-14 12:20:26,078 [DEBUG] [DISPATCH] Received event type=PROCESS_TERMINATED
+2025-12-14 12:20:26,078 [DEBUG] [DISPATCH] → Routing PROCESS event PROCESS_TERMINATED
+2025-12-14 12:20:26,078 [DEBUG] [DISPATCH][PROCESS] Enqueue process event
+2025-12-14 12:20:26,078 [ERROR] [DISPATCH][PROCESS] Failed: 'NoneType' object has no attribute 'enqueue'
+2025-12-14 12:20:26,326 [INFO] [system_status] System status endpoint called
+2025-12-14 12:20:26,327 [DEBUG] [metrics/latest] Querying latest metric snapshot
+2025-12-14 12:20:26,328 [INFO] [metrics/latest] Latest metric found: True
+2025-12-14 12:20:26,329 [DEBUG] [logs/internal] Reading internal logs from /var/log/hids/app.log
+2025-12-14 12:20:26,329 [DEBUG] [metrics/latest] Metric enrichment completed
+2025-12-14 12:20:26,330 [DEBUG] [logs/events] Query params: {'limit': '20'}
+2025-12-14 12:20:26,331 [INFO] [threads] Thread health endpoint called
+2025-12-14 12:20:26,333 [INFO] [logs/internal] Returning last 174 lines (max 50000 bytes)
+2025-12-14 12:20:26,334 [INFO] [logs/events] Returned 20 events (limit=20, offset=0)
+2025-12-14 12:20:26,478 [DEBUG] [system_status] CPU=3.3%, MEM=11.3%
+2025-12-14 12:20:26,479 [INFO] [system_status] Returning system status successfully
+2025-12-14 12:20:27,338 [DEBUG] [logs/internal] Reading internal logs from /var/log/hids/app.log
+2025-12-14 12:20:27,339 [DEBUG] [logs/events] Query params: {'limit': '50'}
+2025-12-14 12:20:27,341 [INFO] [logs/events] Returned 50 events (limit=50, offset=0)
+2025-12-14 12:20:27,343 [INFO] [logs/internal] Returning last 182 lines (max 50000 bytes)
+2025-12-14 12:20:28,795 [DEBUG] [LogsCollector] collect() invoked
+2025-12-14 12:20:28,796 [DEBUG] [LogsCollector] syslog: read 7 new lines
+2025-12-14 12:20:28,796 [INFO] [LogsCollector] syslog: collected 7 new lines
+2025-12-14 12:20:28,796 [DEBUG] [LogsCollector] Offsets saved after collection
+2025-12-14 12:20:29,323 [INFO] [system_status] System status endpoint called
+2025-12-14 12:20:29,324 [DEBUG] [metrics/latest] Querying latest metric snapshot
+2025-12-14 12:20:29,326 [DEBUG] [logs/internal] Reading internal logs from /var/log/hids/app.log
+2025-12-14 12:20:29,327 [DEBUG] [logs/events] Query params: {'limit': '20'}
+2025-12-14 12:20:29,328 [INFO] [metrics/latest] Latest metric found: True
+2025-12-14 12:20:29,328 [DEBUG] [metrics/latest] Metric enrichment completed
+2025-12-14 12:20:29,329 [INFO] [threads] Thread health endpoint called
