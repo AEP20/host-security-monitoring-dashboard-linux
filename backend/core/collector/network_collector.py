@@ -170,12 +170,12 @@ class NetworkCollector:
 
             # IGNORE TIME_WAIT
             if c.get("status") == "TIME_WAIT":
-                logger.debug(f"[NETIGNORE] Ignoring TIME_WAIT connection: {c}")
+                # logger.debug(f"[NETIGNORE] Ignoring TIME_WAIT connection: {c}")
                 continue
 
             # IGNORE 127.0.0.1 to 127.0.0.1:5000 (internal agent traffic)
             if c.get("laddr_port") == 5000 and c.get("laddr_ip") in {"127.0.0.1", "0.0.0.0"}:
-                logger.debug(f"[NETIGNORE] Ignoring internal agent traffic: {c}")
+                # logger.debug(f"[NETIGNORE] Ignoring internal agent traffic: {c}")
                 continue
 
             if c["is_listen"]:
@@ -207,12 +207,12 @@ class NetworkCollector:
 
             # IGNORE TIME_WAIT
             if c.get("status") == "TIME_WAIT":
-                logger.debug(f"[NETIGNORE] Ignoring TIME_WAIT connection: {c}")
+                # logger.debug(f"[NETIGNORE] Ignoring TIME_WAIT connection: {c}")
                 continue
 
             # IGNORE AGENT LOOPBACK TRAFFIC ON PORT 5000
             if c.get("laddr_port") == 5000 and c.get("laddr_ip") in {"127.0.0.1", "0.0.0.0"}:
-                logger.debug(f"[NETIGNORE] Ignoring internal agent traffic: {c}")
+                # logger.debug(f"[NETIGNORE] Ignoring internal agent traffic: {c}")
                 continue
 
             if c["is_listen"]:
