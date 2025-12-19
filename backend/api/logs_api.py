@@ -24,7 +24,7 @@ def get_log_events():
     try:
         db = SessionLocal()
 
-        limit = int(request.args.get("limit", 100))
+        limit = int(request.args.get("limit", 500))
         offset = int(request.args.get("offset", 0))
 
         query = db.query(LogEventModel).order_by(LogEventModel.timestamp.desc())

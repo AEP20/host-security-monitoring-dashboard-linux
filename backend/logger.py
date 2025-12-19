@@ -17,6 +17,5 @@ formatter = logging.Formatter(
 )
 fh.setFormatter(formatter)
 
-# duplicate handler eklenmesin diye
 if not logger.handlers:
     logger.addHandler(fh)
