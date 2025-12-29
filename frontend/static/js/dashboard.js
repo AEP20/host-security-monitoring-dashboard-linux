@@ -1,3 +1,5 @@
+// frontend/static/js/dashboard.js
+
 import { formatTimestamp } from "./utils.js";
 
 // ====================== FETCH SYSTEM STATUS ======================

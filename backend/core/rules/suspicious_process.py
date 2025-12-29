@@ -21,5 +21,5 @@ class SuspiciousProcessRule(StatelessRule):
             alert_type="ALERT_PROCESS_SUSPICIOUS",
             message=f"Suspicious process detected: {pname}",
             log_event_id=None,
-            related_events=self.related_events(event),
+            # related_events=self.related_events(event),
         )
