@@ -10,6 +10,7 @@ from backend.core.rules.suspicious_process import SuspiciousProcessRule
 from backend.core.rules.ssh_bruteforce import SSHBruteforceRule
 from backend.core.rules.sensitive_file_access import SensitiveFileAccessRule
 from backend.core.rules.log_deletion import LogDeletionRule
+from backend.core.rules.resource_usage import HighResourceUsageRule
 
 
 class EventDispatcher:
@@ -23,6 +24,7 @@ class EventDispatcher:
                 SSHBruteforceRule(),
                 SensitiveFileAccessRule(),
                 LogDeletionRule(),
+                HighResourceUsageRule(),
             ],
             context=self.context
         )
