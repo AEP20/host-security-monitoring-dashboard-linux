@@ -10,7 +10,7 @@ class SSHBruteforceRule(StatefulRule):
     event_prefix = "LOG_"
 
     window_seconds = 60
-    threshold = 5
+    threshold = 3
 
     # --------------------------------------------------
     def _is_relevant(self, event: Dict[str, Any]) -> bool:
