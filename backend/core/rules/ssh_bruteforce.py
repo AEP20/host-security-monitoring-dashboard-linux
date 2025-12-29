@@ -7,6 +7,7 @@ class SSHBruteforceRule(StatefulRule):
     rule_id = "AUTH_001"
     description = "SSH brute force attack detected"
     severity = "HIGH"
+    event_prefix = "LOG_"
 
     window_seconds = 60
     threshold = 5

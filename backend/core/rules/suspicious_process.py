@@ -6,6 +6,7 @@ class SuspiciousProcessRule(StatelessRule):
     rule_id = "PROC_001"
     description = "Suspicious process execution"
     severity = "HIGH"
+    event_prefix = "PROCESS_"
 
     def _get_process_name(self, event: dict) -> str:
         return (event.get("process_name") or event.get("name") or "").lower()
