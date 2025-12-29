@@ -1,4 +1,5 @@
 # backend/core/rules/ssh_bruteforce.py
+from backend.core.rules.base import ThresholdRule
 
 class SSHBruteforceRule(ThresholdRule):
     rule_id = "AUTH_001"
