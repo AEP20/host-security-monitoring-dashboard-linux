@@ -8,6 +8,8 @@ from backend.core.rules.context import CorrelationContext
 
 from backend.core.rules.suspicious_process import SuspiciousProcessRule
 from backend.core.rules.ssh_bruteforce import SSHBruteforceRule
+from backend.core.rules.sensitive_file_access import SensitiveFileAccessRule
+from backend.core.rules.log_deletion import LogDeletionRule
 
 
 class EventDispatcher:
@@ -19,6 +21,8 @@ class EventDispatcher:
             rules=[
                 SuspiciousProcessRule(),
                 SSHBruteforceRule(),
+                SensitiveFileAccessRule(),
+                LogDeletionRule(),
             ],
             context=self.context
         )
