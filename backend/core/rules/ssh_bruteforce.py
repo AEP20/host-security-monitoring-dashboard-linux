@@ -18,20 +18,13 @@ class SSHBruteforceRule(StatefulRule):
             event.get("type") == "LOG_EVENT"
             and event.get("category") == "AUTH"
             and event.get("event_type") in ("FAILED_LOGIN", "FAILED_AUTH")
-            and event.get("ip")            # saldırgan tanımı
+            and event.get("ip")
             and event.get("timestamp")
         )
 
-    def _build_key(self, event: Dict[str, Any]) -> str:
+    def _build_key(self, event: Dict[str, Any]) -> tuple:
         # brute force IP bazlıdır
-        return event["ip"]
-
-    def _build_event_ref(self, event: Dict[str, Any]) -> Dict[str, Any]:
-        return {
-            "timestamp": event["timestamp"],
-            "count": 1,  # parser'a dokunmadan minimum anlam
-            "user": event.get("user"),
-        }
+        return (event["ip"],)
 
     # --------------------------------------------------
     def consume(self, event: Dict[str, Any], context) -> None:
@@ -43,40 +36,38 @@ class SSHBruteforceRule(StatefulRule):
         context.add(
             rule_id=self.rule_id,
             key=key,
-            event=self._build_event_ref(event),
+            event=event,                 # 🔑 event'in KENDİSİ
             window_seconds=self.window_seconds,
         )
 
-        logger.debug(f"[SSH_BRUTE][CONSUME] ip={key}")
+        logger.debug(f"[SSH_BRUTE][CONSUME] ip={key[0]}")
 
     # --------------------------------------------------
     def evaluate(self, context) -> List[Dict[str, Any]]:
         results: List[Dict[str, Any]] = []
-        bucket = context._store.get(self.rule_id)
 
-        if not bucket:
+        rule_bucket = context._store.get(self.rule_id)
+        if not rule_bucket:
             return results
 
-        for ip, events in list(bucket.items()):
-            total_failures = sum(e.get("count", 1) for e in events)
+        for key in list(rule_bucket.keys()):
+            events = context.get(
+                rule_id=self.rule_id,
+                key=key,
+                window_seconds=self.window_seconds,
+            )
 
-            if total_failures < self.threshold:
+            if len(events) < self.threshold:
                 continue
 
-            timestamps = [e["timestamp"] for e in events]
-            users = {e.get("user") for e in events if e.get("user")}
-
-            time_from = min(timestamps)
-            time_to = max(timestamps)
-
-            user_info = ", ".join(users) if users else "multiple/unknown users"
+            ip = key[0]
+            timestamps = [e["ts"] for e in events]
 
             alert = self.build_alert_base(
                 alert_type="ALERT_SSH_BRUTEFORCE",
                 message=(
                     f"SSH brute force detected from {ip} "
-                    f"targeting {user_info} "
-                    f"({total_failures} failed attempts in {self.window_seconds}s)"
+                    f"({len(events)} failed attempts in {self.window_seconds}s)"
                 ),
                 extra={
                     "evidence_resolve": {
@@ -86,17 +77,17 @@ class SSHBruteforceRule(StatefulRule):
                             "event_types": ["FAILED_LOGIN", "FAILED_AUTH"],
                             "ip": ip,
                         },
-                        "time_range": {
-                            "from": time_from,
-                            "to": time_to,
-                        },
                         "limit": 20,
                         "order": "asc",
                     }
                 },
             )
 
-            results.append({"alert": alert, "evidence": []})
-            context.clear_key(self.rule_id, ip)
+            results.append({
+                "alert": alert,
+                "evidence": [],
+            })
+
+            context.clear_key(rule_id=self.rule_id, key=key)
 
         return results
