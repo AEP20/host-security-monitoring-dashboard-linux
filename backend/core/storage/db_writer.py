@@ -134,21 +134,33 @@ class DBWriter:
     # -------------------------------------------------
     # ALERT + EVIDENCE
     # -------------------------------------------------
-    def _save_alert(self, payload: Dict[str, Any]):
+        def _save_alert(self, payload: Dict[str, Any]):
         alert_data = payload.get("alert")
         explicit_evidence = payload.get("evidence", [])
 
         if not alert_data:
+            logger.warning("[DBWriter] ALERT payload without alert_data")
             return
 
-        def op(session):
-            # 1) Alert
-            alert_obj = AlertModel.create(alert_data, session=session)
-            session.flush()  # alert_obj.id
+        logger.info(
+            f"[DBWriter][ALERT] rule={alert_data.get('rule_name')} "
+            f"type={alert_data.get('type')}"
+        )
 
-            # 2) Rule tarafından EXPLICIT gönderilen evidence (opsiyonel)
+        def op(session):
+            alert_obj = AlertModel.create(alert_data, session=session)
+            session.flush()
+
+            logger.debug(
+                f"[DBWriter][ALERT_CREATED] id={alert_obj.id}"
+            )
+
+            # explicit evidence
             for ev in explicit_evidence:
                 if not self._valid_evidence(ev):
+                    logger.debug(
+                        f"[DBWriter][EVIDENCE_SKIP] invalid={ev}"
+                    )
                     continue
 
                 session.add(
@@ -161,7 +173,11 @@ class DBWriter:
                     )
                 )
 
-            # 3) GENERIC resolve (rule → spec verir)
+                logger.debug(
+                    f"[DBWriter][EVIDENCE_EXPLICIT] "
+                    f"event_id={ev['event_id']} role={ev['role']}"
+                )
+
             self._resolve_evidence(
                 session=session,
                 alert_id=alert_obj.id,
@@ -169,6 +185,7 @@ class DBWriter:
             )
 
         self._with_retry(op, event_type="ALERT")
+
 
     # -------------------------------------------------
     # EVIDENCE VALIDATION
@@ -185,14 +202,16 @@ class DBWriter:
     # GENERIC EVIDENCE RESOLVER
     # -------------------------------------------------
     def _resolve_evidence(self, *, session, alert_id: int, alert_data: Dict[str, Any]):
-        """
-        alert.extra["evidence_resolve"] spesifikasyonuna göre
-        ilgili event'leri DB'den bulur ve alert_evidence'a bağlar.
-        """
-
         spec = (alert_data.get("extra") or {}).get("evidence_resolve")
         if not spec:
+            logger.debug(
+                f"[DBWriter][RESOLVE] alert_id={alert_id} no spec"
+            )
             return
+
+        logger.debug(
+            f"[DBWriter][RESOLVE] alert_id={alert_id} spec={spec}"
+        )
 
         source = spec.get("source")
         filters = spec.get("filters", {})
@@ -206,25 +225,30 @@ class DBWriter:
 
         q = session.query(model.id, model.timestamp)
 
-        # --- Filters ---
         for field, value in filters.items():
             if value is None:
                 continue
             if hasattr(model, field):
+                logger.debug(
+                    f"[DBWriter][FILTER] {field}={value}"
+                )
                 q = q.filter(getattr(model, field) == value)
 
-        # --- Time window ---
         if time_range.get("from"):
             q = q.filter(model.timestamp >= time_range["from"])
         if time_range.get("to"):
             q = q.filter(model.timestamp <= time_range["to"])
 
-        # --- Ordering ---
         q = q.order_by(
             model.timestamp.asc() if order == "asc" else model.timestamp.desc()
         )
 
         rows = q.limit(limit).all()
+
+        logger.info(
+            f"[DBWriter][RESOLVE] alert_id={alert_id} "
+            f"matched_events={len(rows)}"
+        )
 
         for seq, (event_id, _) in enumerate(rows, start=1):
             session.add(
