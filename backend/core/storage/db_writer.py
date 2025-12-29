@@ -227,90 +227,65 @@ class DBWriter:
     def _resolve_evidence(self, *, session, alert_id: int, alert_data: Dict[str, Any]):
         spec = (alert_data.get("extra") or {}).get("evidence_resolve")
         if not spec:
-            logger.debug(
-                f"[DBWriter][RESOLVE] alert_id={alert_id} no spec"
-            )
+            logger.debug(f"[DBWriter][RESOLVE] alert_id={alert_id} no spec")
             return
-
-        logger.debug(
-            f"[DBWriter][RESOLVE] alert_id={alert_id} spec={spec}"
-        )
 
         source = spec.get("source")
         filters = spec.get("filters", {})
         time_range = spec.get("time_range", {})
-        limit = spec.get("limit", 20)
+        
+        # Limit Ayarı: Eğer ID listesi varsa tam o kadar çek, yoksa spec/default kullan
+        if "id__in" in filters and isinstance(filters["id__in"], list):
+            limit = len(filters["id__in"])
+        else:
+            limit = spec.get("limit", 20)
+
         order = spec.get("order", "desc")
 
         model, event_type = self._resolve_source(source)
         if not model:
-            logger.debug(
-                f"[DBWriter][RESOLVE] unsupported source={source}"
-            )
             return
 
         q = session.query(model.id, model.timestamp)
 
         # -------------------------------
-        # FILTER ENGINE (generic)
+        # FILTER ENGINE
         # -------------------------------
         for field, value in filters.items():
-            if value is None:
-                continue
+            if value is None: continue
 
-            # __in support
             if field.endswith("__in"):
                 real_field = field.replace("__in", "")
                 if hasattr(model, real_field):
-                    logger.debug(
-                        f"[DBWriter][FILTER_IN] {real_field} IN {value}"
-                    )
                     q = q.filter(getattr(model, real_field).in_(value))
                 continue
 
             if hasattr(model, field):
-                logger.debug(
-                    f"[DBWriter][FILTER_EQ] {field}={value}"
-                )
                 q = q.filter(getattr(model, field) == value)
 
         # -------------------------------
-        # TIME RANGE (Generic Buffer Correction)
+        # TIME RANGE (Akıllı Mantık)
         # -------------------------------
-        # Buradaki düzeltme, her rule'un içine buffer ekleme zorunluluğunu kaldırır.
-        # Timestamp farkları ve asenkron yazma gecikmelerini kompanse eder.
-        start_ts = time_range.get("from")
-        end_ts = time_range.get("to")
+        # EĞER kural bize spesifik ID'ler (id__in) gönderdiyse ZAMANA BAKMA.
+        # Bu sayede buffer kaymalarından etkilenmeyiz.
+        if "id__in" not in filters:
+            start_ts = time_range.get("from")
+            end_ts = time_range.get("to")
 
-        if start_ts:
-            # Gelen veri datetime objesi değilse epoch varsayıp datetime'a çeviriyoruz
-            if not isinstance(start_ts, datetime):
-                start_ts = datetime.fromtimestamp(float(start_ts))
-            
-            # 10 saniye geriye esnetiyoruz
-            adjusted_start = start_ts - timedelta(seconds=2)
-            q = q.filter(model.timestamp >= adjusted_start)
-            logger.debug(f"[DBWriter][RESOLVE] start adjusted: {start_ts} -> {adjusted_start}")
+            if start_ts:
+                if not isinstance(start_ts, datetime):
+                    start_ts = datetime.fromtimestamp(float(start_ts))
+                q = q.filter(model.timestamp >= start_ts - timedelta(seconds=2))
 
-        if end_ts:
-            if not isinstance(end_ts, datetime):
-                end_ts = datetime.fromtimestamp(float(end_ts))
-            
-            # 2 saniye ileriye esnetiyoruz
-            adjusted_end = end_ts + timedelta(seconds=1)
-            q = q.filter(model.timestamp <= adjusted_end)
-            logger.debug(f"[DBWriter][RESOLVE] end adjusted: {end_ts} -> {adjusted_end}")
+            if end_ts:
+                if not isinstance(end_ts, datetime):
+                    end_ts = datetime.fromtimestamp(float(end_ts))
+                q = q.filter(model.timestamp <= end_ts + timedelta(seconds=1))
 
-        q = q.order_by(
-            model.timestamp.asc() if order == "asc" else model.timestamp.desc()
-        )
-
+        q = q.order_by(model.timestamp.asc() if order == "asc" else model.timestamp.desc())
         rows = q.limit(limit).all()
 
-        logger.debug(
-            f"[DBWriter][RESOLVE_DONE] alert_id={alert_id} "
-            f"matched_events={len(rows)}"
-        )
+        logger.debug(f"[DBWriter][RESOLVE_DONE] alert_id={alert_id} matched={len(rows)}")
 
         for seq, (event_id, _) in enumerate(rows, start=1):
             session.add(
