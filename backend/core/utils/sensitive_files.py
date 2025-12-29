@@ -12,5 +12,5 @@ SENSITIVE_FILES = [
 # Bazı binary'lerin bu dosyalara erişmesi normal olabilir (örn: sshd, login, sudo)
 # Gereksiz alarmları (False Positive) önlemek için istisna listesi:
 SENSITIVE_ACCESS_WHITELIST = [
-    "sshd", "sudo", "login", "passwd", "chfn", "chsh"
+    "sshd", "login", "passwd", "chfn", "chsh"
 ]

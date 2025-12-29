@@ -16,7 +16,7 @@ class LogDeletionRule(StatelessRule):
     # Tespit etmek istediğimiz kritik log ve geçmiş dosyaları
     SUSPICIOUS_TARGETS = [
         "/var/log/auth", "/var/log/syslog", "/var/log/messages",
-        "/var/log/hids", ".bash_history", ".zsh_history"
+        "/var/log/hids", ".bash_history", ".zsh_history", "/var/log/hids/app.log"
     ]
 
     def match(self, event: dict) -> bool:
