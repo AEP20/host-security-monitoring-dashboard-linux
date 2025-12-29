@@ -12,8 +12,8 @@ class HighResourceUsageRule(ThresholdRule):
     threshold = 3          # Pencere içinde 3 defa eşik aşılırsa tetikle
     window_seconds = 60    # 1 dakikalık pencere (WINDOW_SIZE)
     
-    CPU_THRESHOLD = 90.0
-    MEM_THRESHOLD = 90.0
+    CPU_THRESHOLD = 70.0
+    MEM_THRESHOLD = 10.0
 
     def is_relevant(self, event: Dict[str, Any]) -> bool:
         """Sadece metrik snapshotlarını kontrol et"""
