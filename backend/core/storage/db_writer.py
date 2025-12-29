@@ -25,10 +25,10 @@ class DBWriter:
     Sorumluluk:
     - Gelen payload'ı doğru tabloya yazmak
     - Transaction / retry yönetmek
+    - Alert oluşturulduktan sonra evidence'ı DB'ye bağlamak
 
     Yapmaz:
     - Kural çalıştırmak
-    - Evidence üretmek
     - Correlation yapmak
     """
 
@@ -138,7 +138,7 @@ class DBWriter:
                 session.close()
 
     # -------------------------------------------------
-    # ALERT + EVIDENCE (GENERIC)
+    # ALERT + EVIDENCE
     # -------------------------------------------------
     def _save_alert(self, payload: Dict[str, Any]):
         alert_data = payload.get("alert")
@@ -148,11 +148,9 @@ class DBWriter:
             return
 
         def op(session):
-            # Alert
             alert_obj = AlertModel.create(alert_data, session=session)
-            session.flush()  # alert_obj.id
+            session.flush() 
 
-            # Evidence (tamamen opsiyonel)
             for ev in evidence_list:
                 if not ev.get("event_id") or not ev.get("event_type") or not ev.get("role"):
                     continue
@@ -167,4 +165,57 @@ class DBWriter:
                     )
                 )
 
+            self._resolve_evidence(
+                session=session,
+                alert_id=alert_obj.id,
+                alert_data=alert_data,
+            )
+
         self._with_retry(op, event_type="ALERT")
+
+    # -------------------------------------------------
+    # GENERIC EVIDENCE RESOLVER
+    # -------------------------------------------------
+    def _resolve_evidence(self, *, session, alert_id: int, alert_data: Dict[str, Any]):
+        """
+        alert.extra["evidence_resolve"] üzerinden
+        ilgili event'leri DB'den bulup alert_evidence'a bağlar
+        """
+
+        extra = alert_data.get("extra") or {}
+        spec = extra.get("evidence_resolve")
+
+        if not spec:
+            return
+
+        source = spec.get("source")
+        category = spec.get("category")
+        event_types = spec.get("event_types", [])
+
+        # Şimdilik sadece LOG_EVENT destekleniyor
+        if source != "log_events":
+            logger.warning(f"[DBWriter] Unsupported evidence source: {source}")
+            return
+
+        q = session.query(LogEventModel.id)
+
+        if category:
+            q = q.filter(LogEventModel.category == category)
+
+        if event_types:
+            q = q.filter(LogEventModel.event_type.in_(event_types))
+
+        q = q.order_by(LogEventModel.timestamp.desc()).limit(100)
+
+        rows = q.all()
+
+        for idx, (event_id,) in enumerate(rows, start=1):
+            session.add(
+                AlertEvidenceModel.create(
+                    alert_id=alert_id,
+                    event_type="LOG_EVENT",
+                    event_id=event_id,
+                    role="SUPPORT",
+                    sequence=idx,
+                )
+            )
