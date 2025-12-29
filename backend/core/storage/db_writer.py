@@ -226,77 +226,55 @@ class DBWriter:
     # -------------------------------------------------
     def _resolve_evidence(self, *, session, alert_id: int, alert_data: Dict[str, Any]):
         spec = (alert_data.get("extra") or {}).get("evidence_resolve")
-        if not spec:
-            logger.debug(f"[DBWriter][RESOLVE] alert_id={alert_id} no spec")
-            return
+        if not spec: return
 
         source = spec.get("source")
         filters = spec.get("filters", {})
         time_range = spec.get("time_range", {})
         
-        # Limit Ayarı: Eğer ID listesi varsa tam o kadar çek, yoksa spec/default kullan
-        if "id__in" in filters and isinstance(filters["id__in"], list):
-            limit = len(filters["id__in"])
-        else:
-            limit = spec.get("limit", 20)
-
-        order = spec.get("order", "desc")
-
         model, event_type = self._resolve_source(source)
-        if not model:
-            return
+        if not model: return
 
         q = session.query(model.id, model.timestamp)
 
-        # -------------------------------
-        # FILTER ENGINE
-        # -------------------------------
-        for field, value in filters.items():
-            if value is None: continue
-
-            if field.endswith("__in"):
-                real_field = field.replace("__in", "")
-                if hasattr(model, real_field):
-                    q = q.filter(getattr(model, real_field).in_(value))
-                continue
-
-            if hasattr(model, field):
-                q = q.filter(getattr(model, field) == value)
-
-        # -------------------------------
-        # TIME RANGE (Akıllı Mantık)
-        # -------------------------------
-        # EĞER kural bize spesifik ID'ler (id__in) gönderdiyse ZAMANA BAKMA.
-        # Bu sayede buffer kaymalarından etkilenmeyiz.
-        if "id__in" not in filters:
+        # ---------------------------------------------------------
+        # HİBRİT ÇÖZÜM: ID VARSA NOKTA ATIŞI, YOKSA ZAMAN FALLBACK
+        # ---------------------------------------------------------
+        valid_ids = filters.get("id__in", [])
+        
+        if valid_ids:
+            # Durum A: Loglar yazılmış ve ID'ler elimizde.
+            q = q.filter(model.id.in_(valid_ids))
+            limit = len(valid_ids)
+            logger.debug(f"[DBWriter][RESOLVE] Using explicit IDs for alert_id={alert_id}")
+        else:
+            # Durum B: Loglar henüz kuyrukta, ID'ler kurala yetişmedi.
+            # IP, Kategori vb. filtreleri uygula
+            for field, value in filters.items():
+                if field != "id__in" and hasattr(model, field) and value is not None:
+                    q = q.filter(getattr(model, field) == value)
+            
+            # Zaman aralığı buffer ile uygula
             start_ts = time_range.get("from")
             end_ts = time_range.get("to")
-
-            if start_ts:
-                if not isinstance(start_ts, datetime):
-                    start_ts = datetime.fromtimestamp(float(start_ts))
+            if start_ts and end_ts:
+                if not isinstance(start_ts, datetime): start_ts = datetime.fromtimestamp(float(start_ts))
+                if not isinstance(end_ts, datetime): end_ts = datetime.fromtimestamp(float(end_ts))
                 q = q.filter(model.timestamp >= start_ts - timedelta(seconds=2))
+                q = q.filter(model.timestamp <= end_ts + timedelta(seconds=2))
+            
+            limit = spec.get("limit", 20)
+            logger.debug(f"[DBWriter][RESOLVE] Falling back to filters for alert_id={alert_id}")
 
-            if end_ts:
-                if not isinstance(end_ts, datetime):
-                    end_ts = datetime.fromtimestamp(float(end_ts))
-                q = q.filter(model.timestamp <= end_ts + timedelta(seconds=1))
-
-        q = q.order_by(model.timestamp.asc() if order == "asc" else model.timestamp.desc())
-        rows = q.limit(limit).all()
-
-        logger.debug(f"[DBWriter][RESOLVE_DONE] alert_id={alert_id} matched={len(rows)}")
+        rows = q.order_by(model.timestamp.desc()).limit(limit).all()
 
         for seq, (event_id, _) in enumerate(rows, start=1):
-            session.add(
-                AlertEvidenceModel.create(
-                    alert_id=alert_id,
-                    event_type=event_type,
-                    event_id=event_id,
-                    role="SUPPORT",
-                    sequence=seq,
-                )
-            )
+            session.add(AlertEvidenceModel.create(
+                alert_id=alert_id, event_type=event_type,
+                event_id=event_id, role="SUPPORT", sequence=seq
+            ))
+        
+        logger.debug(f"[DBWriter][RESOLVE_DONE] alert_id={alert_id} matched={len(rows)}")
 
     # -------------------------------------------------
     # SOURCE → MODEL MAP

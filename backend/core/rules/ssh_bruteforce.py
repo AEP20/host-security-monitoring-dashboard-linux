@@ -20,15 +20,29 @@ class SSHBruteforceRule(ThresholdRule):
 
     def create_alert(self, key, events):
         ip = key[0]
-        # Kuralı tetikleyen logların ID'lerini alıyoruz
+        
+        # Yarış durumu için ID'leri topla (ID'ler None olabilir)
         event_ids = [e.get("event_id") for e in events if e.get("event_id")]
+        
+        # ID'ler boş olsa bile resolver'ın bulabilmesi için zaman aralığını al
+        timestamps = [e.get("ts") for e in events if e.get("ts")]
         
         return self.build_alert_base(
             alert_type="ALERT_SSH_BRUTEFORCE",
             message=f"SSH brute force from {ip} ({len(events)} attempts)",
-            # Zamanla veya limitlerle uğraşmıyoruz, nokta atışı ID veriyoruz
-            extra=self.build_evidence_spec(
-                source="log_events", 
-                filters={"id__in": event_ids} 
-            )
+            extra={
+                "evidence_resolve": {
+                    "source": "log_events", 
+                    "filters": {
+                        "ip_address": ip, 
+                        "category": "AUTH",
+                        "id__in": event_ids # Varsa ID ile, yoksa IP+Time ile bağlanacak
+                    },
+                    "time_range": {
+                        "from": min(timestamps) if timestamps else None,
+                        "to": max(timestamps) if timestamps else None
+                    },
+                    "limit": 10
+                }
+            }
         )
