@@ -53,7 +53,7 @@ class LogDispatcher:
         try:
             event = parser.parse(line)
 
-            self.save_to_db(event)
+            # self.save_to_db(event)
 
             return event
 
