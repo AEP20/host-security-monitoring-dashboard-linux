@@ -7,7 +7,6 @@ class SSHBruteforceRule(StatefulRule):
     rule_id = "AUTH_001"
     description = "SSH brute force attack detected"
     severity = "HIGH"
-    event_prefix = "FAILED_"
 
     window_seconds = 60
     threshold = 3
@@ -23,7 +22,6 @@ class SSHBruteforceRule(StatefulRule):
         )
 
     def _build_key(self, event: Dict[str, Any]) -> tuple:
-        # brute force IP bazlıdır
         return (event["ip"],)
 
     # --------------------------------------------------
@@ -36,7 +34,7 @@ class SSHBruteforceRule(StatefulRule):
         context.add(
             rule_id=self.rule_id,
             key=key,
-            event=event,                 # 🔑 event'in KENDİSİ
+            event=event,
             window_seconds=self.window_seconds,
         )
 
@@ -74,8 +72,12 @@ class SSHBruteforceRule(StatefulRule):
                         "source": "log_events",
                         "filters": {
                             "category": "AUTH",
-                            "event_types": ["FAILED_LOGIN", "FAILED_AUTH"],
-                            "ip": ip,
+                            "event_type__in": ["FAILED_LOGIN", "FAILED_AUTH"],
+                            "ip_address": ip,
+                        },
+                        "time_range": {
+                            "from": min(timestamps),
+                            "to": max(timestamps),
                         },
                         "limit": 20,
                         "order": "asc",

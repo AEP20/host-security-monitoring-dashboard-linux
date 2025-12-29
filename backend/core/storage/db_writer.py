@@ -51,11 +51,13 @@ class DBWriter:
         self.worker.start()
 
     def stop(self):
+        logger.info("[DBWriter] Stopping DB writer thread")
         self._stop_event.set()
         self.worker.join(timeout=5)
 
     def enqueue(self, payload: Dict[str, Any]):
         if payload:
+            logger.debug(f"[DBWriter][ENQUEUE] type={payload.get('type')}")
             self.queue.put(payload)
 
     # -------------------------------------------------
@@ -83,7 +85,10 @@ class DBWriter:
     def _handle_payload(self, payload: Dict[str, Any]):
         etype = payload.get("type")
         if not etype:
+            logger.debug("[DBWriter] Payload without type ignored")
             return
+
+        logger.debug(f"[DBWriter][ROUTE] type={etype}")
 
         if etype.startswith("PROCESS_"):
             self._write(ProcessEventModel, payload, etype)
@@ -108,6 +113,9 @@ class DBWriter:
     # -------------------------------------------------
     def _write(self, model, payload: Dict[str, Any], event_type: str):
         def op(session):
+            logger.debug(
+                f"[DBWriter][WRITE] model={model.__name__} event_type={event_type}"
+            )
             model.create(payload, session=session)
 
         self._with_retry(op, event_type=event_type)
@@ -118,10 +126,16 @@ class DBWriter:
             try:
                 fn(session)
                 session.commit()
+                logger.debug(
+                    f"[DBWriter][COMMIT] event_type={event_type} attempt={attempt}"
+                )
                 return
             except OperationalError as e:
                 session.rollback()
                 if "locked" in str(e):
+                    logger.debug(
+                        f"[DBWriter][RETRY] db locked attempt={attempt}"
+                    )
                     time.sleep(0.1 * attempt)
                 else:
                     raise
@@ -144,7 +158,7 @@ class DBWriter:
 
         logger.info(
             f"[DBWriter][ALERT] rule={alert_data.get('rule_name')} "
-            f"type={alert_data.get('type')}"
+            f"severity={alert_data.get('severity')}"
         )
 
         def op(session):
@@ -155,7 +169,9 @@ class DBWriter:
                 f"[DBWriter][ALERT_CREATED] id={alert_obj.id}"
             )
 
-            # explicit evidence
+            # -------------------------------
+            # Explicit evidence (opsiyonel)
+            # -------------------------------
             for ev in explicit_evidence:
                 if not self._valid_evidence(ev):
                     logger.debug(
@@ -178,6 +194,9 @@ class DBWriter:
                     f"event_id={ev['event_id']} role={ev['role']}"
                 )
 
+            # -------------------------------
+            # Generic resolver
+            # -------------------------------
             self._resolve_evidence(
                 session=session,
                 alert_id=alert_obj.id,
@@ -185,7 +204,6 @@ class DBWriter:
             )
 
         self._with_retry(op, event_type="ALERT")
-
 
     # -------------------------------------------------
     # EVIDENCE VALIDATION
@@ -221,19 +239,39 @@ class DBWriter:
 
         model, event_type = self._resolve_source(source)
         if not model:
+            logger.debug(
+                f"[DBWriter][RESOLVE] unsupported source={source}"
+            )
             return
 
         q = session.query(model.id, model.timestamp)
 
+        # -------------------------------
+        # FILTER ENGINE (generic)
+        # -------------------------------
         for field, value in filters.items():
             if value is None:
                 continue
+
+            # __in support
+            if field.endswith("__in"):
+                real_field = field.replace("__in", "")
+                if hasattr(model, real_field):
+                    logger.debug(
+                        f"[DBWriter][FILTER_IN] {real_field} IN {value}"
+                    )
+                    q = q.filter(getattr(model, real_field).in_(value))
+                continue
+
             if hasattr(model, field):
                 logger.debug(
-                    f"[DBWriter][FILTER] {field}={value}"
+                    f"[DBWriter][FILTER_EQ] {field}={value}"
                 )
                 q = q.filter(getattr(model, field) == value)
 
+        # -------------------------------
+        # TIME RANGE
+        # -------------------------------
         if time_range.get("from"):
             q = q.filter(model.timestamp >= time_range["from"])
         if time_range.get("to"):
@@ -245,8 +283,8 @@ class DBWriter:
 
         rows = q.limit(limit).all()
 
-        logger.info(
-            f"[DBWriter][RESOLVE] alert_id={alert_id} "
+        logger.debug(
+            f"[DBWriter][RESOLVE_DONE] alert_id={alert_id} "
             f"matched_events={len(rows)}"
         )
 
