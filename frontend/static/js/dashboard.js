@@ -9,9 +9,7 @@ async function fetchSystemStatus() {
     try {
         console.log("[DEBUG][fetchSystemStatus] Fetching /api/system/status ...");
         const res = await fetch("/api/system/status");
-        console.log("[DEBUG][fetchSystemStatus] Response:", res);
         const data = await res.json();
-        console.log("[DEBUG][fetchSystemStatus] JSON:", data);
 
         if (!data.success) {
             console.warn("[WARN][fetchSystemStatus] success=false");
@@ -19,14 +17,12 @@ async function fetchSystemStatus() {
         }
 
         const d = data.data;
-        console.log("[DEBUG][fetchSystemStatus] Data payload:", d);
 
         document.querySelector("#cpu-card .value").textContent = d.cpu_percent + "%";
         document.querySelector("#ram-card .value").textContent = d.memory_percent + "%";
         document.querySelector("#uptime-card .value").textContent = d.system_uptime_human;
 
-        // --- 2. Security Score Güncelleme (Yeni Kısım) ---
-        const score = d.security_score; // Backend'den gelen 0-100 arası sayı
+        const score = d.security_score; 
         const scoreCard = document.querySelector("#security-score-card");
         
         if (scoreCard) {
@@ -35,23 +31,33 @@ async function fetchSystemStatus() {
 
             scoreValueEl.textContent = score + "/100";
 
-            // Puan durumuna göre renk belirleme
-            let color = "#2ecc71"; // Varsayılan: Yeşil (Güvenli)
-            if (score <= 50) {
-                color = "#e74c3c"; // Kırmızı (Tehlikeli)
+            // Renk Mantığı
+            let color = "#2ecc71"; // Yeşil
+            if (score <= 30) {
+                color = "#ff4757"; // Agresif Kırmızı
+            } else if (score <= 60) {
+                color = "#ffa502"; // Turuncu
             } else if (score <= 80) {
-                color = "#f1c40f"; // Sarı (Dikkat)
+                color = "#f1c40f"; // Sarı
             }
 
-            // UI Renklerini ve Bar Genişliğini Uygula
+            // UI Uygulama
             scoreValueEl.style.color = color;
             if (scoreFill) {
                 scoreFill.style.backgroundColor = color;
-                scoreFill.style.width = score + "%";
+                // Sıfırda bile görünürlük için %3 taban genişlik
+                scoreFill.style.width = Math.max(score, 3) + "%"; 
+                
+                // Kritik seviye glow efekti
+                if (score <= 30) {
+                    scoreFill.style.boxShadow = "0 0 10px " + color;
+                } else {
+                    scoreFill.style.boxShadow = "none";
+                }
             }
         }
 
-        console.log("[DEBUG][fetchSystemStatus] DOM updated with Security Score:", score);
+        console.log("[DEBUG][fetchSystemStatus] DOM updated. Score:", score);
 
     } catch (e) {
         console.error("System status error:", e);

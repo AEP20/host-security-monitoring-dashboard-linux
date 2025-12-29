@@ -4,32 +4,40 @@
 
 .system-card-container {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
+    grid-template-columns: repeat(5, 1fr); 
+    gap: 15px; 
     margin-bottom: 32px;
 }
 
 .system-card {
     background: #ffffff;
     border-radius: 12px;
-    padding: 22px 18px;
+    padding: 15px 10px; 
     text-align: center;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    min-width: 0; 
 }
 
 .system-card h3 {
-    font-size: 15px;
+    font-size: 13px; 
     font-weight: 600;
-    color: #444;
-    margin-bottom: 8px;
+    color: #666;
+    margin-bottom: 5px;
+    white-space: nowrap; 
 }
 
 .system-card .value {
-    font-size: 28px;
+    font-size: 22px;
     font-weight: 700;
     color: #111;
 }
 
+.score-fill {
+    height: 100%;
+    width: 0%; 
+    background-color: #2ecc71;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.5s ease;
+}
 
 /* =====================================================
    APPLICATION LOG VIEWER
@@ -122,13 +130,6 @@
     border-radius: 5px;
     margin-top: 10px;
     overflow: hidden;
-}
-
-.score-fill {
-    height: 100%;
-    width: 0%; 
-    background-color: #2ecc71;
-    transition: width 0.8s ease-in-out, background-color 0.5s ease;
 }
 
 
