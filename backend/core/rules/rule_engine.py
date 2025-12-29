@@ -37,17 +37,13 @@ class RuleEngine:
         """
         results: List[Dict[str, Any]] = []
 
-        etype = (
-            event.get("event_type")
-            if event.get("type") == "LOG_EVENT"
-            else event.get("type", "")
-        )
+        raw_type = event.get("type", "")
 
         # ---------------------------
         # STATELESS
         # ---------------------------
         for rule in self.stateless_rules:
-            if not rule.supports(etype):
+            if not rule.supports(raw_type):
                 continue
 
             try:
@@ -71,21 +67,27 @@ class RuleEngine:
         # STATEFUL
         # ---------------------------
         for rule in self.stateful_rules:
-            if not rule.supports(etype):
+            # Rule prefix kontrolü orijinal tip üzerinden yapılır
+            if not rule.supports(raw_type):
                 continue
 
             try:
+                # Event'i kuralın hafızasına (Context) ekle
                 rule.consume(event, context=self.context)
 
+                # Eşik değerlerin aşılıp aşılmadığını kontrol et
                 produced = rule.evaluate(self.context)
-                for item in produced:
-                    alert = item.get("alert")
-                    evidence = item.get("evidence", [])
+                
+                if produced:
+                    for item in produced:
+                        alert = item.get("alert")
+                        evidence = item.get("evidence", [])
 
-                    results.append({
-                        "alert": alert,
-                        "evidence": evidence,
-                    })
+                        results.append({
+                            "alert": alert,
+                            "evidence": evidence,
+                        })
+                        logger.info(f"[RULE_ENGINE] Stateful matched: {rule.rule_id}")
 
             except Exception as e:
                 logger.exception(
@@ -93,5 +95,3 @@ class RuleEngine:
                 )
 
         return results
-
-
