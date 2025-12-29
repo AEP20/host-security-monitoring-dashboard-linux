@@ -1,5 +1,3 @@
-# backend/core/storage/db_writer.py
-
 import threading
 import queue
 import time
@@ -23,15 +21,18 @@ class DBWriter:
     Sistemdeki TEK DB write noktası.
 
     Sorumluluk:
-    - Gelen payload'ı doğru tabloya yazmak
+    - Event'leri DB'ye yazmak
+    - Alert + Evidence ilişkilendirmesini yapmak
     - Transaction / retry yönetmek
-    - Alert oluşturulduktan sonra evidence'ı DB'ye bağlamak
 
     Yapmaz:
-    - Kural çalıştırmak
-    - Correlation yapmak
+    - Rule çalıştırmak
+    - Correlation mantığı kurmak
     """
 
+    # -------------------------------------------------
+    # INIT
+    # -------------------------------------------------
     def __init__(self):
         self.queue: queue.Queue[Dict[str, Any]] = queue.Queue()
         self._stop_event = threading.Event()
@@ -81,33 +82,20 @@ class DBWriter:
     # -------------------------------------------------
     def _handle_payload(self, payload: Dict[str, Any]):
         etype = payload.get("type")
-
         if not etype:
             return
 
         if etype.startswith("PROCESS_"):
-            self._with_retry(
-                lambda s: ProcessEventModel.create(payload, session=s),
-                event_type=etype,
-            )
+            self._write(ProcessEventModel, payload, etype)
 
         elif etype == "LOG_EVENT":
-            self._with_retry(
-                lambda s: LogEventModel.create(payload, session=s),
-                event_type="LOG_EVENT",
-            )
+            self._write(LogEventModel, payload, etype)
 
         elif etype.startswith("NET_") or etype.startswith("CONNECTION_"):
-            self._with_retry(
-                lambda s: NetworkEventModel.create(payload, session=s),
-                event_type=etype,
-            )
+            self._write(NetworkEventModel, payload, etype)
 
         elif etype == "METRIC_SNAPSHOT":
-            self._with_retry(
-                lambda s: MetricModel.create(payload, session=s),
-                event_type="METRIC_SNAPSHOT",
-            )
+            self._write(MetricModel, payload, etype)
 
         elif etype == "ALERT":
             self._save_alert(payload)
@@ -116,8 +104,14 @@ class DBWriter:
             logger.debug(f"[DBWriter] Ignored payload type={etype}")
 
     # -------------------------------------------------
-    # RETRY WRAPPER
+    # GENERIC WRITE WITH RETRY
     # -------------------------------------------------
+    def _write(self, model, payload: Dict[str, Any], event_type: str):
+        def op(session):
+            model.create(payload, session=session)
+
+        self._with_retry(op, event_type=event_type)
+
     def _with_retry(self, fn, *, event_type: str, retries: int = 3):
         for attempt in range(1, retries + 1):
             session = SessionLocal()
@@ -142,17 +136,19 @@ class DBWriter:
     # -------------------------------------------------
     def _save_alert(self, payload: Dict[str, Any]):
         alert_data = payload.get("alert")
-        evidence_list = payload.get("evidence", [])
+        explicit_evidence = payload.get("evidence", [])
 
         if not alert_data:
             return
 
         def op(session):
+            # 1) Alert
             alert_obj = AlertModel.create(alert_data, session=session)
-            session.flush() 
+            session.flush()  # alert_obj.id
 
-            for ev in evidence_list:
-                if not ev.get("event_id") or not ev.get("event_type") or not ev.get("role"):
+            # 2) Rule tarafından EXPLICIT gönderilen evidence (opsiyonel)
+            for ev in explicit_evidence:
+                if not self._valid_evidence(ev):
                     continue
 
                 session.add(
@@ -165,6 +161,7 @@ class DBWriter:
                     )
                 )
 
+            # 3) GENERIC resolve (rule → spec verir)
             self._resolve_evidence(
                 session=session,
                 alert_id=alert_obj.id,
@@ -174,48 +171,85 @@ class DBWriter:
         self._with_retry(op, event_type="ALERT")
 
     # -------------------------------------------------
+    # EVIDENCE VALIDATION
+    # -------------------------------------------------
+    @staticmethod
+    def _valid_evidence(ev: Dict[str, Any]) -> bool:
+        return (
+            ev.get("event_id")
+            and ev.get("event_type")
+            and ev.get("role")
+        )
+
+    # -------------------------------------------------
     # GENERIC EVIDENCE RESOLVER
     # -------------------------------------------------
     def _resolve_evidence(self, *, session, alert_id: int, alert_data: Dict[str, Any]):
         """
-        alert.extra["evidence_resolve"] üzerinden
-        ilgili event'leri DB'den bulup alert_evidence'a bağlar
+        alert.extra["evidence_resolve"] spesifikasyonuna göre
+        ilgili event'leri DB'den bulur ve alert_evidence'a bağlar.
         """
 
-        extra = alert_data.get("extra") or {}
-        spec = extra.get("evidence_resolve")
-
+        spec = (alert_data.get("extra") or {}).get("evidence_resolve")
         if not spec:
             return
 
         source = spec.get("source")
-        category = spec.get("category")
-        event_types = spec.get("event_types", [])
+        filters = spec.get("filters", {})
+        time_range = spec.get("time_range", {})
+        limit = spec.get("limit", 20)
+        order = spec.get("order", "desc")
 
-        # Şimdilik sadece LOG_EVENT destekleniyor
-        if source != "log_events":
-            logger.warning(f"[DBWriter] Unsupported evidence source: {source}")
+        model, event_type = self._resolve_source(source)
+        if not model:
             return
 
-        q = session.query(LogEventModel.id)
+        q = session.query(model.id, model.timestamp)
 
-        if category:
-            q = q.filter(LogEventModel.category == category)
+        # --- Filters ---
+        for field, value in filters.items():
+            if value is None:
+                continue
+            if hasattr(model, field):
+                q = q.filter(getattr(model, field) == value)
 
-        if event_types:
-            q = q.filter(LogEventModel.event_type.in_(event_types))
+        # --- Time window ---
+        if time_range.get("from"):
+            q = q.filter(model.timestamp >= time_range["from"])
+        if time_range.get("to"):
+            q = q.filter(model.timestamp <= time_range["to"])
 
-        q = q.order_by(LogEventModel.timestamp.desc()).limit(100)
+        # --- Ordering ---
+        q = q.order_by(
+            model.timestamp.asc() if order == "asc" else model.timestamp.desc()
+        )
 
-        rows = q.all()
+        rows = q.limit(limit).all()
 
-        for idx, (event_id,) in enumerate(rows, start=1):
+        for seq, (event_id, _) in enumerate(rows, start=1):
             session.add(
                 AlertEvidenceModel.create(
                     alert_id=alert_id,
-                    event_type="LOG_EVENT",
+                    event_type=event_type,
                     event_id=event_id,
                     role="SUPPORT",
-                    sequence=idx,
+                    sequence=seq,
                 )
             )
+
+    # -------------------------------------------------
+    # SOURCE → MODEL MAP
+    # -------------------------------------------------
+    @staticmethod
+    def _resolve_source(source: str):
+        if source == "log_events":
+            return LogEventModel, "LOG_EVENT"
+        if source == "process_events":
+            return ProcessEventModel, "PROCESS_EVENT"
+        if source == "network_events":
+            return NetworkEventModel, "NETWORK_EVENT"
+        if source == "metric_events":
+            return MetricModel, "METRIC_SNAPSHOT"
+
+        logger.warning(f"[DBWriter] Unsupported evidence source: {source}")
+        return None, None
