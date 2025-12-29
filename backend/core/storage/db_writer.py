@@ -134,7 +134,7 @@ class DBWriter:
     # -------------------------------------------------
     # ALERT + EVIDENCE
     # -------------------------------------------------
-        def _save_alert(self, payload: Dict[str, Any]):
+    def _save_alert(self, payload: Dict[str, Any]):
         alert_data = payload.get("alert")
         explicit_evidence = payload.get("evidence", [])
 
