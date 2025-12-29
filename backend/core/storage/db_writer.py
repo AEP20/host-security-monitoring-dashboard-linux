@@ -288,7 +288,7 @@ class DBWriter:
                 start_ts = datetime.fromtimestamp(float(start_ts))
             
             # 10 saniye geriye esnetiyoruz
-            adjusted_start = start_ts - timedelta(seconds=10)
+            adjusted_start = start_ts - timedelta(seconds=2)
             q = q.filter(model.timestamp >= adjusted_start)
             logger.debug(f"[DBWriter][RESOLVE] start adjusted: {start_ts} -> {adjusted_start}")
 
@@ -297,7 +297,7 @@ class DBWriter:
                 end_ts = datetime.fromtimestamp(float(end_ts))
             
             # 2 saniye ileriye esnetiyoruz
-            adjusted_end = end_ts + timedelta(seconds=2)
+            adjusted_end = end_ts + timedelta(seconds=1)
             q = q.filter(model.timestamp <= adjusted_end)
             logger.debug(f"[DBWriter][RESOLVE] end adjusted: {end_ts} -> {adjusted_end}")
 
