@@ -4,7 +4,7 @@ import os
 LOG_PATH = "/var/log/hids/app.log"
 os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
 
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG").upper()
 
 logger = logging.getLogger("hids")
 logger.setLevel(LOG_LEVEL)
