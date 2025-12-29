@@ -3,6 +3,7 @@ import psutil
 import time
 
 from backend.api.utils.response_wrapper import success, error
+from backend.security_score import SecurityScore
 from backend.logger import logger
 
 system_api = Blueprint("system_api", __name__)
@@ -60,6 +61,7 @@ def system_status():
         sys_up = get_system_uptime_seconds()
 
         data = {
+            "security_score": SecurityScore.calculate_score(),
             "hids_uptime_seconds": get_hids_uptime_seconds(),
             "system_uptime_seconds": sys_up,
             "system_uptime_human": format_seconds(sys_up),

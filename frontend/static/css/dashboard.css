@@ -115,6 +115,22 @@
     color: #333;
 }
 
+.score-bar-container {
+    width: 100%;
+    background-color: #e0e0e0;
+    height: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+    overflow: hidden;
+}
+
+.score-fill {
+    height: 100%;
+    width: 0%; 
+    background-color: #2ecc71;
+    transition: width 0.8s ease-in-out, background-color 0.5s ease;
+}
+
 
 /* =====================================================
    VIEW ALL LINK

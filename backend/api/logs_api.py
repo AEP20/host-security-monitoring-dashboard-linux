@@ -1,6 +1,5 @@
 # logs_api.py
 
-
 from flask import Blueprint, request
 from backend.api.utils.response_wrapper import success, error
 from backend.database import SessionLocal

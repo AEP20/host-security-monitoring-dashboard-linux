@@ -10,7 +10,6 @@ async function fetchSystemStatus() {
         console.log("[DEBUG][fetchSystemStatus] Fetching /api/system/status ...");
         const res = await fetch("/api/system/status");
         console.log("[DEBUG][fetchSystemStatus] Response:", res);
-
         const data = await res.json();
         console.log("[DEBUG][fetchSystemStatus] JSON:", data);
 
@@ -26,7 +25,33 @@ async function fetchSystemStatus() {
         document.querySelector("#ram-card .value").textContent = d.memory_percent + "%";
         document.querySelector("#uptime-card .value").textContent = d.system_uptime_human;
 
-        console.log("[DEBUG][fetchSystemStatus] DOM updated");
+        // --- 2. Security Score Güncelleme (Yeni Kısım) ---
+        const score = d.security_score; // Backend'den gelen 0-100 arası sayı
+        const scoreCard = document.querySelector("#security-score-card");
+        
+        if (scoreCard) {
+            const scoreValueEl = scoreCard.querySelector(".value");
+            const scoreFill = document.getElementById("score-fill");
+
+            scoreValueEl.textContent = score + "/100";
+
+            // Puan durumuna göre renk belirleme
+            let color = "#2ecc71"; // Varsayılan: Yeşil (Güvenli)
+            if (score <= 50) {
+                color = "#e74c3c"; // Kırmızı (Tehlikeli)
+            } else if (score <= 80) {
+                color = "#f1c40f"; // Sarı (Dikkat)
+            }
+
+            // UI Renklerini ve Bar Genişliğini Uygula
+            scoreValueEl.style.color = color;
+            if (scoreFill) {
+                scoreFill.style.backgroundColor = color;
+                scoreFill.style.width = score + "%";
+            }
+        }
+
+        console.log("[DEBUG][fetchSystemStatus] DOM updated with Security Score:", score);
 
     } catch (e) {
         console.error("System status error:", e);
