@@ -1,6 +1,7 @@
 import threading
 import queue
 import time
+from datetime import datetime, timedelta
 from typing import Dict, Any
 
 from sqlalchemy.exc import OperationalError
@@ -103,6 +104,10 @@ class DBWriter:
             self._write(MetricModel, payload, etype)
 
         elif etype == "ALERT":
+            # Yarış durumunu önlemek için ALERT işlenmeden önce 
+            # milisaniyelik bir esneklik payı veriyoruz. 
+            # Bu, kuyruktaki son logların DB'ye commit edilmesini bekler.
+            time.sleep(0.3)
             self._save_alert(payload)
 
         else:
@@ -270,12 +275,31 @@ class DBWriter:
                 q = q.filter(getattr(model, field) == value)
 
         # -------------------------------
-        # TIME RANGE
+        # TIME RANGE (Generic Buffer Correction)
         # -------------------------------
-        if time_range.get("from"):
-            q = q.filter(model.timestamp >= time_range["from"])
-        if time_range.get("to"):
-            q = q.filter(model.timestamp <= time_range["to"])
+        # Buradaki düzeltme, her rule'un içine buffer ekleme zorunluluğunu kaldırır.
+        # Timestamp farkları ve asenkron yazma gecikmelerini kompanse eder.
+        start_ts = time_range.get("from")
+        end_ts = time_range.get("to")
+
+        if start_ts:
+            # Gelen veri datetime objesi değilse epoch varsayıp datetime'a çeviriyoruz
+            if not isinstance(start_ts, datetime):
+                start_ts = datetime.fromtimestamp(float(start_ts))
+            
+            # 10 saniye geriye esnetiyoruz
+            adjusted_start = start_ts - timedelta(seconds=10)
+            q = q.filter(model.timestamp >= adjusted_start)
+            logger.debug(f"[DBWriter][RESOLVE] start adjusted: {start_ts} -> {adjusted_start}")
+
+        if end_ts:
+            if not isinstance(end_ts, datetime):
+                end_ts = datetime.fromtimestamp(float(end_ts))
+            
+            # 2 saniye ileriye esnetiyoruz
+            adjusted_end = end_ts + timedelta(seconds=2)
+            q = q.filter(model.timestamp <= adjusted_end)
+            logger.debug(f"[DBWriter][RESOLVE] end adjusted: {end_ts} -> {adjusted_end}")
 
         q = q.order_by(
             model.timestamp.asc() if order == "asc" else model.timestamp.desc()
