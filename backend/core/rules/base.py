@@ -1,4 +1,3 @@
-# backend/core/rules/base.py
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
@@ -7,12 +6,10 @@ class BaseRule(ABC):
     """
     Ortak metadata + yardımcı fonksiyonlar.
     """
-
     rule_id: str
     description: str
     severity: str
     event_prefix: str  # PROCESS_, NET_, LOG_, etc.
-
     enabled: bool = True
 
     def supports(self, event_type: str) -> bool:
@@ -31,9 +28,6 @@ class BaseRule(ABC):
         related_events: Optional[List[Dict[str, Any]]] = None,
         extra: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """
-        Alert payload standardı (tüm rule'lar buradan üretir)
-        """
         alert = {
             "type": alert_type,
             "rule_name": self.rule_id,
@@ -41,25 +35,31 @@ class BaseRule(ABC):
             "message": message,
             "log_event_id": log_event_id,
         }
-
-        # Şimdilik DB'ye yazılmıyor ama mimaride var
         if related_events:
             alert["related_events"] = related_events
-
         if extra:
             alert["extra"] = extra
-
         return alert
 
+    # --- YENİ HELPER ---
+    def build_evidence_spec(self, source: str, filters: Dict[str, Any], limit: int = 20):
+        """
+        Boilerplate JSON yazımını engeller. 
+        DBWriter'daki buffer mantığı sayesinde time_range eklemeye gerek kalmaz.
+        """
+        return {
+            "evidence_resolve": {
+                "source": source,
+                "filters": filters,
+                "limit": limit
+            }
+        }
+
 
 # =========================================================
-# STATELESS RULE
+# STATELESS RULE (Basitleştirilmiş)
 # =========================================================
 class StatelessRule(BaseRule, ABC):
-    """
-    Tek event ile karar veren rule.
-    """
-
     @abstractmethod
     def match(self, event: Dict[str, Any]) -> bool:
         pass
@@ -68,15 +68,7 @@ class StatelessRule(BaseRule, ABC):
     def build_alert(self, event: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
-    def build_evidence(
-        self,
-        event: Dict[str, Any],
-    ) -> List[Dict[str, Any]]:
-        """
-        Default stateless evidence:
-        - current event
-        - TRIGGER
-        """
+    def build_evidence(self, event: Dict[str, Any]) -> List[Dict[str, Any]]:
         return [{
             "event_type": event.get("type"),
             "event_id": event.get("id"),
@@ -86,13 +78,9 @@ class StatelessRule(BaseRule, ABC):
 
 
 # =========================================================
-# STATEFUL RULE
+# STATEFUL RULE (Ham/Generic)
 # =========================================================
 class StatefulRule(BaseRule, ABC):
-    """
-    Birden fazla event ile karar veren rule.
-    """
-
     window_seconds: int = 300
 
     @abstractmethod
@@ -101,9 +89,62 @@ class StatefulRule(BaseRule, ABC):
 
     @abstractmethod
     def evaluate(self, context: Any) -> List[Dict[str, Any]]:
-        """
-        Alert payload üretir.
-        Evidence bilgisi alert içinde taşınır.
-        """
         pass
 
+
+# =========================================================
+# PATTERN: THRESHOLD RULE (Yeni Akıllı Sınıf)
+# =========================================================
+class ThresholdRule(StatefulRule, ABC):
+    """
+    'X olayı Y sürede Z kadar olursa' mantığını tamamen encapsulate eder.
+    """
+    threshold: int = 3
+    window_seconds: int = 60
+
+    @abstractmethod
+    def is_relevant(self, event: Dict[str, Any]) -> bool:
+        """Olay bu kuralı ilgilendiriyor mu? (Örn: FAILED_LOGIN mi?)"""
+        pass
+
+    @abstractmethod
+    def get_key(self, event: Dict[str, Any]) -> tuple:
+        """Gruplama anahtarı ne? (Örn: IP adresi mi?)"""
+        pass
+
+    @abstractmethod
+    def create_alert(self, key: tuple, events: List[Any]) -> Dict[str, Any]:
+        """Eşik aşıldığında üretilecek alert payload'u."""
+        pass
+
+    def consume(self, event: Dict[str, Any], context: Any) -> None:
+        if not self.is_relevant(event):
+            return
+
+        key = self.get_key(event)
+        context.add(
+            rule_id=self.rule_id,
+            key=key,
+            event=event,
+            window_seconds=self.window_seconds,
+        )
+
+    def evaluate(self, context: Any) -> List[Dict[str, Any]]:
+        results = []
+        rule_bucket = context._store.get(self.rule_id)
+        if not rule_bucket:
+            return results
+
+        for key in list(rule_bucket.keys()):
+            events = context.get(
+                rule_id=self.rule_id,
+                key=key,
+                window_seconds=self.window_seconds,
+            )
+
+            if len(events) >= self.threshold:
+                alert = self.create_alert(key, events)
+                results.append({"alert": alert, "evidence": []})
+                context.clear_key(rule_id=self.rule_id, key=key)
+
+        return results
