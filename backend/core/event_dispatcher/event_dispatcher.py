@@ -11,6 +11,9 @@ from backend.core.rules.ssh_bruteforce import SSHBruteforceRule
 from backend.core.rules.sensitive_file_access import SensitiveFileAccessRule
 from backend.core.rules.log_deletion import LogDeletionRule
 from backend.core.rules.resource_usage import HighResourceUsageRule
+from backend.core.rules.user_creation import UserCreationRule
+from backend.core.rules.persistence_cron import PersistenceCronRule
+from backend.core.rules.suspicious_shell import SuspiciousShellRule
 
 
 class EventDispatcher:
@@ -25,6 +28,9 @@ class EventDispatcher:
                 SensitiveFileAccessRule(),
                 LogDeletionRule(),
                 HighResourceUsageRule(),
+                UserCreationRule(),
+                PersistenceCronRule(),
+                SuspiciousShellRule(),
             ],
             context=self.context
         )

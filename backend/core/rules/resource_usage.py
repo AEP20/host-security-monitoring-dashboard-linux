@@ -8,34 +8,34 @@ class HighResourceUsageRule(ThresholdRule):
     severity = "MEDIUM"
     event_prefix = "METRIC_"  # MetricsCollector METRIC_SNAPSHOT üretir
     
-    # Eşik Ayarları
-    threshold = 3          # Pencere içinde 3 defa eşik aşılırsa tetikle
-    window_seconds = 60    # 1 dakikalık pencere (WINDOW_SIZE)
+    threshold = 2          # Peş peşe 2 yüksek metrik yeterli
+    window_seconds = 180   # 3 dakikalık pencere (Snapshotların birikmesi için)
     
-    CPU_THRESHOLD = 70.0
-    MEM_THRESHOLD = 10.0
+    CPU_THRESHOLD = 70.0   # %70 üzeri CPU kullanımı
+    MEM_THRESHOLD = 80.0   # %80 üzeri RAM kullanımı
 
     def is_relevant(self, event: Dict[str, Any]) -> bool:
         """Sadece metrik snapshotlarını kontrol et"""
         return event.get("type") == "METRIC_SNAPSHOT"
 
     def get_key(self, event: Dict[str, Any]) -> tuple:
-        """Tüm sistem kaynaklarını tek bir anahtar altında izle"""
+        """Sistemi tek bir anahtar altında izle"""
         return ("system_resources",)
 
     def match_condition(self, event: Dict[str, Any]) -> bool:
-        """CPU veya RAM eşiği aşıldı mı?"""
+        """Eşik değerleri aşıldı mı?"""
         cpu = event.get("cpu_percent", 0)
         mem = event.get("ram_percent", 0)
         return cpu > self.CPU_THRESHOLD or mem > self.MEM_THRESHOLD
 
     def consume(self, event: Dict[str, Any], context: Any) -> None:
-        """Olayı değerlendir ve eşik aşılıyorsa context'e ekle"""
+        """Eşik aşılıyorsa olayı CorrelationContext hafızasına ekle"""
         if not self.is_relevant(event):
             return
             
         if self.match_condition(event):
-            logger.debug(f"[{self.rule_id}] High usage: CPU %{event.get('cpu_percent')}, MEM %{event.get('ram_percent')}")
+            # Loglarda bu satırı görmelisin:
+            logger.debug(f"[{self.rule_id}] High usage detected: CPU %{event.get('cpu_percent')}")
             context.add(
                 rule_id=self.rule_id,
                 key=self.get_key(event),
@@ -44,19 +44,21 @@ class HighResourceUsageRule(ThresholdRule):
             )
 
     def create_alert(self, key: tuple, events: List[Any]) -> Dict[str, Any]:
-        """Eşik aşıldığında alarmı oluştur"""
+        """Eşik aşıldığında asıl alarm payload'unu oluştur"""
         last_event = events[-1]
         cpu = last_event.get("cpu_percent")
         mem = last_event.get("ram_percent")
 
-        # Kanıt olarak kuralı tetikleyen tüm snapshot ID'lerini gönder
+        # Kanıt olarak tetikleyici tüm snapshot ID'lerini topla
         event_ids = [e.get("id") for e in events if e.get("id")]
+
+        logger.info(f"[{self.rule_id}] THRESHOLD REACHED! Generating Alert.")
 
         return self.build_alert_base(
             alert_type="ALERT_HIGH_RESOURCE_USAGE",
-            message=f"Critical resource usage: CPU %{cpu}, RAM %{mem} exceeded thresholds for 1 minute.",
+            message=f"Critical resource usage: CPU %{cpu}, RAM %{mem} detected over {len(events)} snapshots.",
             extra=self.build_evidence_spec(
-                source="metric_events", # DBWriter'daki doğru tablo ismi
+                source="metric_events", # DBWriter'daki metrik tablosu
                 filters={"id__in": event_ids}
             )
         )
