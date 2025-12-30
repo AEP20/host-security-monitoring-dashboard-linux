@@ -46,9 +46,9 @@ class SecurityScore:
 
                 time_decay = max(0.2, math.exp(-0.1 * hours_old))
 
-                rule_id = alert.rule_id or "UNKNOWN"
-                rule_counts[rule_id] = rule_counts.get(rule_id, 0) + 1
-                frequency_factor = 1 + math.log(1 + rule_counts[rule_id])
+                rule_key = alert.rule_name or "UNKNOWN"
+                rule_counts[rule_key] = rule_counts.get(rule_key, 0) + 1
+                frequency_factor = 1 + math.log(1 + rule_counts[rule_key])
 
                 score -= penalty * time_decay * frequency_factor
 
