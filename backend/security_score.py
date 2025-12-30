@@ -15,7 +15,7 @@ class SecurityScore:
     def calculate_score(cls):
         now = time.time()
 
-        # Cache kontrolü
+        # CACHE
         if now - cls._last_calc_time < cls.CACHE_DURATION:
             return cls._cached_score
 
@@ -23,7 +23,7 @@ class SecurityScore:
         session = SessionLocal()
 
         try:
-            # Son 24 saatteki alarmları çek
+            # LAST 24 HOURS
             one_day_ago = datetime.now() - timedelta(days=1)
             alerts = session.query(AlertModel).filter(
                 AlertModel.timestamp >= one_day_ago

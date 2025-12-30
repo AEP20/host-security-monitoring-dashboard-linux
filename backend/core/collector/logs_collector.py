@@ -100,7 +100,6 @@ class LogsCollector:
         self.offset_manager = OffsetManager(state_file)
         logger.info(f"[LogsCollector] Initialized with state file: {state_file}")
 
-    # Public API
     def collect(self):
         logger.debug("[LogsCollector] collect() invoked")
         results = []
@@ -116,7 +115,7 @@ class LogsCollector:
 
         return results
 
-    # Internal helpers
+    # INTERNAL HELPERS
     def _read_file(self, source, filepath):
         if not os.path.exists(filepath):
             logger.warning(f"[LogsCollector] Log file not found: {filepath}")

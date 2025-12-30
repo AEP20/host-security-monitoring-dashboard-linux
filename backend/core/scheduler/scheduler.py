@@ -36,13 +36,13 @@ class Scheduler:
     LOG_INTERVAL = 3
 
     def __init__(self):
-        # Collectors
+        # COLLECTORS
         self.metrics_collector = MetricsCollector()
         self.process_collector = ProcessCollector()
         self.network_collector = NetworkCollector()
         self.log_collector = LogsCollector()
 
-        # Dispatchers
+        # DISPATCHER
         self.event_dispatcher = EventDispatcher()
         self.log_dispatcher = LogDispatcher()
 
@@ -114,16 +114,13 @@ class Scheduler:
                     source = entry["source"]
                     line = entry["line"]
 
-                    # STEP 1 → RAW → PARSER
                     parsed_event = self.log_dispatcher.dispatch(source, line)
 
-                    # Eğer parser.match() → FALSE ise skip
                     if not parsed_event:
-                        continue  # ↩️ burada SKIP ŞART
+                        continue 
 
                     parsed_event.setdefault("type", "LOG_EVENT")
 
-                    # STEP 2 → structured event → EventDispatcher
                     logger.debug(
                         f"[Scheduler] Dispatching parsed log event: {parsed_event}"
                     )
@@ -173,7 +170,7 @@ class Scheduler:
             scheduler_instance = self
 
 
-# Standalone run
+# FOR TESTING 
 if __name__ == "__main__":
     s = Scheduler()
     s.start()

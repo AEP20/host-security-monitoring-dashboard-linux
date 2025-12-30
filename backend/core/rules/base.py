@@ -9,7 +9,7 @@ class BaseRule(ABC):
     rule_id: str
     description: str
     severity: str
-    event_prefix: str  # PROCESS_, NET_, LOG_, etc.
+    event_prefix: str  # PROCESS_, NET_, LOG_ etc.
     enabled: bool = True
 
     def supports(self, event_type: str) -> bool:
@@ -41,7 +41,7 @@ class BaseRule(ABC):
             alert["extra"] = extra
         return alert
 
-    # --- YENİ HELPER ---
+    # --- HELPER ---
     def build_evidence_spec(self, source: str, filters: Dict[str, Any], limit: int = 20):
         """
         Boilerplate JSON yazımını engeller. 
@@ -57,7 +57,7 @@ class BaseRule(ABC):
 
 
 # =========================================================
-# STATELESS RULE (Basitleştirilmiş)
+# STATELESS RULE 
 # =========================================================
 class StatelessRule(BaseRule, ABC):
     @abstractmethod
@@ -78,7 +78,7 @@ class StatelessRule(BaseRule, ABC):
 
 
 # =========================================================
-# STATEFUL RULE (Ham/Generic)
+# STATEFUL RULE
 # =========================================================
 class StatefulRule(BaseRule, ABC):
     window_seconds: int = 300
@@ -93,23 +93,23 @@ class StatefulRule(BaseRule, ABC):
 
 
 # =========================================================
-# PATTERN: THRESHOLD RULE (Yeni Akıllı Sınıf)
+# PATTERN: THRESHOLD RULE
 # =========================================================
 class ThresholdRule(StatefulRule, ABC):
     """
-    'X olayı Y sürede Z kadar olursa' mantığını tamamen encapsulate eder.
+    'X olayı Y sürede Z kadar olursa' mantığını tamamen encapsulate et.
     """
     threshold: int = 3
     window_seconds: int = 60
 
     @abstractmethod
     def is_relevant(self, event: Dict[str, Any]) -> bool:
-        """Olay bu kuralı ilgilendiriyor mu? (Örn: FAILED_LOGIN mi?)"""
+        """Olay bu kuralı ilgilendiriyor mu?"""
         pass
 
     @abstractmethod
     def get_key(self, event: Dict[str, Any]) -> tuple:
-        """Gruplama anahtarı ne? (Örn: IP adresi mi?)"""
+        """Gruplama anahtarı ne?"""
         pass
 
     @abstractmethod

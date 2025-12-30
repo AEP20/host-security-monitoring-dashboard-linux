@@ -23,7 +23,7 @@ alerts_api = Blueprint("alerts_api", __name__)
 #   ?offset=0
 #
 # Bu endpoint SADECE alert listesi döner
-# Evidence / event detayına girmez (hafif olmalı)
+# Evidence / event detayına girmez
 # ======================================================
 @alerts_api.get("")
 def get_alerts():
@@ -84,7 +84,7 @@ def get_alert_detail(alert_id):
     session = SessionLocal()
     try:
         # --------------------------------------------------
-        # 1️⃣ Alert'i çek
+        # FETCH ALERT
         # --------------------------------------------------
         alert = session.query(AlertModel).get(alert_id)
 
@@ -92,7 +92,7 @@ def get_alert_detail(alert_id):
             return error("Alert not found", status_code=404)
 
         # --------------------------------------------------
-        # 2️⃣ Evidence kayıtlarını çek (sıralı)
+        # FETCH EVIDENCE 
         # --------------------------------------------------
         evidences = (
             session.query(AlertEvidenceModel)
@@ -104,10 +104,7 @@ def get_alert_detail(alert_id):
         evidence_payload = []
 
         # --------------------------------------------------
-        # 3️⃣ Her evidence için ilgili event'i yükle
-        #
-        # ⚠️ Burada polymorphic çözüm var:
-        # event_type'a bakıp doğru tabloya gidiyoruz
+        # FIND THE EVENTS RELATED TO THE EVIDENCE
         # --------------------------------------------------
         for ev in evidences:
             event_data = None
@@ -124,7 +121,6 @@ def get_alert_detail(alert_id):
                 obj = session.query(NetworkEventModel).get(ev.event_id)
                 event_data = obj.to_dict() if obj else None
 
-            # Bilinmeyen / silinmiş event
             if not event_data:
                 logger.warning(
                     f"[alerts] Evidence event not found "
@@ -139,7 +135,7 @@ def get_alert_detail(alert_id):
             })
 
         # --------------------------------------------------
-        # 4️⃣ Final response
+        # FINAL RESPONSE
         # --------------------------------------------------
         return success(data={
             "alert": alert.to_dict(),

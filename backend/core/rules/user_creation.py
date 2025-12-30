@@ -6,17 +6,15 @@ class UserCreationRule(StatelessRule):
     rule_id = "UUC_001"
     description = "New user creation or modification detected via system logs"
     severity = "CRITICAL"
-    event_prefix = "LOG_" # Sadece log olaylarını takip edeceğiz
+    event_prefix = "LOG_" 
 
     def supports(self, event_type: str) -> bool:
-        # Sadece log olaylarını desteklemesi yeterli
         return event_type == "LOG_EVENT"
 
     def match(self, event: Dict[str, Any]) -> bool:
         if event.get("type") != "LOG_EVENT":
             return False
 
-        # Log mesajını normalize et
         msg = event.get("message", "").lower()
         
         # Kritik log desenleri:
@@ -32,7 +30,6 @@ class UserCreationRule(StatelessRule):
         return False
 
     def build_alert(self, event: Dict[str, Any]) -> Dict[str, Any]:
-        # Log verisinden kullanıcıyı çekmeye çalış, yoksa 'System' olarak işaretle
         user = event.get("user") or "System/Root"
         raw_msg = event.get("message", "No message content")
 

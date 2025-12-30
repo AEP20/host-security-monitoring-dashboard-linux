@@ -1,5 +1,4 @@
 # 📁 regex_patterns.py
-
 # Log parse ederken kullanılan regex’ler burada toplanır
 
 import re
@@ -127,6 +126,8 @@ SYS_STOPPED = re.compile(
 SYS_WARNING = re.compile(
     r"warning", re.IGNORECASE
 )
+
+# 
 SYS_ERROR = re.compile(
     r"error|failed|critical", re.IGNORECASE
 )

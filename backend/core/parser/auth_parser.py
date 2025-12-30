@@ -16,10 +16,6 @@
 #   "method": "password" vs.
 # }
 
-
-# Kullanım:
-# SSH brute force, root login, sudo misuse gibi kurallar bu event’leri kullanır.
-
 from datetime import datetime
 from backend.core.utils.timestamp import parse_timestamp
 
@@ -158,7 +154,7 @@ class AuthParser:
         return "AUTH_EVENT"
 
     # ---------------------------
-    # SEVERITY
+    # SEVERITY CALCULATOR
     # ---------------------------
 
     def estimate_severity(self, event_type, user):

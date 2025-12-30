@@ -9,7 +9,6 @@ from backend.logger import logger
 
 
 class NetworkCollector:
-
     def __init__(self, state_file="/var/lib/hids/network_state.json"):
         self.state_file = state_file
         logger.info(f"[NetworkCollector] Initialized with state file: {state_file}")
@@ -21,7 +20,6 @@ class NetworkCollector:
         curr = self._build_snapshot()
         ts = curr["timestamp"]
 
-        # 🔍 DEBUG: snapshot boyutu
         logger.debug(
             f"[NETDEBUG] prev_connections={len(prev.get('connections', []))}, "
             f"curr_connections={len(curr.get('connections', []))}"
@@ -133,7 +131,7 @@ class NetworkCollector:
         return out
 
     # ============================================================
-    # DIFF ENGINE
+    # DIFF
     # ============================================================
     def _diff_connection_events(self, prev, curr, ts):
         logger.debug("[NetworkCollector] Starting diff-engine")
@@ -156,7 +154,6 @@ class NetworkCollector:
         prev_keys = set(prev_map.keys())
         curr_keys = set(curr_map.keys())
 
-        # 🔍 DEBUG: diff summary
         logger.debug(
             f"[NETDEBUG][DIFF] prev={len(prev)}, curr={len(curr)} | "
             f"prev_keys={len(prev_keys)}, curr_keys={len(curr_keys)}"
@@ -168,14 +165,13 @@ class NetworkCollector:
         for k in curr_keys - prev_keys:
             c = curr_map[k]
 
-            # IGNORE TIME_WAIT
+            # IGNORE TIME_WAIT, NOISE
             if c.get("status") == "TIME_WAIT":
                 # logger.debug(f"[NETIGNORE] Ignoring TIME_WAIT connection: {c}")
                 continue
 
-            # IGNORE 127.0.0.1 to 127.0.0.1:5000 (internal agent traffic)
+            # IGNORE 127.0.0.1 to 127.0.0.1:5000 (internal agent traffic), NOISE
             if c.get("laddr_port") == 5000 and c.get("laddr_ip") in {"127.0.0.1", "0.0.0.0"}:
-                # logger.debug(f"[NETIGNORE] Ignoring internal agent traffic: {c}")
                 continue
 
             if c["is_listen"]:
@@ -205,12 +201,12 @@ class NetworkCollector:
         for k in prev_keys - curr_keys:
             c = prev_map[k]
 
-            # IGNORE TIME_WAIT
+            # IGNORE TIME_WAIT, NOISE
             if c.get("status") == "TIME_WAIT":
                 # logger.debug(f"[NETIGNORE] Ignoring TIME_WAIT connection: {c}")
                 continue
 
-            # IGNORE AGENT LOOPBACK TRAFFIC ON PORT 5000
+            # IGNORE AGENT LOOPBACK TRAFFIC ON PORT 5000, NOISE
             if c.get("laddr_port") == 5000 and c.get("laddr_ip") in {"127.0.0.1", "0.0.0.0"}:
                 # logger.debug(f"[NETIGNORE] Ignoring internal agent traffic: {c}")
                 continue

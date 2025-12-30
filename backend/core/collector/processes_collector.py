@@ -147,7 +147,7 @@ class ProcessCollector:
         )
 
     # ---------------------------------------------------
-    # 1) PREVIOUS SNAPSHOT YÜKLE
+    # 1) PREVIOUS SNAPSHOT LOAD
     # ---------------------------------------------------
     def load_previous(self) -> Dict[str, Dict[str, Any]]:
         if not os.path.exists(self.cache_path):
@@ -166,7 +166,7 @@ class ProcessCollector:
             return {}
 
     # ---------------------------------------------------
-    # 2) CACHE’E YAZ
+    # 2) WRITE CACHE
     # ---------------------------------------------------
     def save_previous(self, snapshot: Dict[str, Dict[str, Any]]) -> None:
         try:
@@ -178,7 +178,7 @@ class ProcessCollector:
             logger.error(f"[ProcessCollector] Failed saving snapshot: {e}")
 
     # ---------------------------------------------------
-    # 3) EXE HASH YARDIMCI FONKSİYONU
+    # 3) EXE HASH HELPER FUNC
     # ---------------------------------------------------
     def _hash_executable(self, path: Optional[str]) -> Optional[str]:
         if not path:
@@ -198,7 +198,7 @@ class ProcessCollector:
             return None
 
     # ---------------------------------------------------
-    # 4) CURRENT SNAPSHOT TOPLA
+    # 4) CURRENT SNAPSHOT FETCH
     # ---------------------------------------------------
     def collect_snapshot(self) -> Dict[str, Dict[str, Any]]:
         logger.debug("[ProcessCollector] Collecting process snapshot")
@@ -283,7 +283,7 @@ class ProcessCollector:
         return snapshot
 
     # ---------------------------------------------------
-    # 5) DIFF AL — EVENT ÜRET
+    # 5) DIFF ENGINE
     # ---------------------------------------------------
     def diff_processes(
         self,
@@ -423,7 +423,7 @@ class ProcessCollector:
         return events
 
     # ---------------------------------------------------
-    # 6) TEK ADIM — SCHEDULER İÇİN
+    # 6) FOR SCHEDULER ONE STEP
     # ---------------------------------------------------
     def step(self) -> List[Dict[str, Any]]:
         logger.debug("[ProcessCollector] step() invoked")
@@ -437,7 +437,7 @@ class ProcessCollector:
         return events
 
     # ---------------------------------------------------
-    # 7) ANA LOOP
+    # 7) MAIN LOOP
     # ---------------------------------------------------
     def run(self, interval: int = 10):
         logger.info(f"[ProcessCollector] Run loop started interval={interval}s")
@@ -448,7 +448,7 @@ class ProcessCollector:
             time.sleep(interval)
 
     # ---------------------------------------------------
-    # 8) TEST
+    # 8) TEST FUNC
     # ---------------------------------------------------
     def test_once(self) -> None:
         events = self.step()

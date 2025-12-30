@@ -10,32 +10,30 @@ class LogEventModel(Base):
     id = Column(Integer, primary_key=True)
     timestamp = Column(DateTime, default=current_time, index=True)
 
-    # Kaynak log dosyası (auth, syslog, kernel, dpkg, ufw)
+    # LOG SOURCE (auth, syslog, kernel, dpkg, ufw)
     log_source = Column(String(50), nullable=False)
 
-    # Normalize event tipi (FAILED_LOGIN, PACKAGE_INSTALL, KERNEL_WARNING)
+    # EVENT TYPE(FAILED_LOGIN, PACKAGE_INSTALL, KERNEL_WARNING)
     event_type = Column(String(100), nullable=False)
 
-    # Event ana kategorisi (AUTH, SYSTEM, KERNEL, PACKAGE, FIREWALL)
+    # CATEGORY (AUTH, SYSTEM, KERNEL, PACKAGE, FIREWALL)
     category = Column(String(50), nullable=True)
 
-    # Rule engine severity
+    # SEVERITY
     severity = Column(String(20), nullable=True)  # LOW, MEDIUM, HIGH
 
-    # Ham log (orijinal satır)
+    # RAW LOG
     raw_log = Column(Text, nullable=True)
 
-    # Parser sonrası özet
+    # AFTER PARSER
     message = Column(Text, nullable=False)
     user = Column(String(100), nullable=True)
     ip_address = Column(String(100), nullable=True)
     process_name = Column(String(200), nullable=True)
     # hostname = Column(String(100), nullable=True)
 
-    # Rule engine tarafından tetiklenen kural
     rule_triggered = Column(String(100), nullable=True)
 
-    # Ek alanlar (JSON string)
     extra_data = Column(Text, nullable=True)
 
     # ---------------------------------------------------

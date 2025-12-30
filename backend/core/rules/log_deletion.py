@@ -12,19 +12,14 @@ class LogDeletionRule(StatelessRule):
     ]
 
     def supports(self, event_type: str) -> bool:
-        # Hem süreçleri hem de auth loglarını destekle
         return event_type in ["PROCESS_NEW", "LOG_EVENT"]
 
     def match(self, event: dict) -> bool:
-        # 1. Veriyi normalize et (Sudo logu mu yoksa süreç mi?)
         if event.get("type") == "LOG_EVENT":
-            # Sudo logu içindeki 'message' alanına bakıyoruz
             content = event.get("message", "").lower()
-            # Sadece 'truncate' veya 'rm' geçen sudo loglarını dikkate al
             if not any(cmd in content for cmd in ["truncate", "rm", "shred"]):
                 return False
         else:
-            # Normal süreç takibi
             raw_cmdline = event.get("cmdline", "")
             content = " ".join(raw_cmdline).lower() if isinstance(raw_cmdline, list) else str(raw_cmdline).lower()
             
@@ -32,7 +27,6 @@ class LogDeletionRule(StatelessRule):
             if pname not in ["rm", "truncate", "shred"]:
                 return False
 
-        # 2. Kritik dosyalar hedeflenmiş mi?
         for target in self.SUSPICIOUS_TARGETS:
             if target.lower() in content:
                 return True
@@ -41,7 +35,6 @@ class LogDeletionRule(StatelessRule):
 
     def build_alert(self, event: dict) -> dict:
         user = event.get("username") or event.get("user", "unknown")
-        # Log mu süreç mi olduğuna göre mesajı ayarla
         msg_source = "process" if event.get("type") == "PROCESS_NEW" else "sudo log"
         
         return self.build_alert_base(

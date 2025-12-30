@@ -33,7 +33,7 @@ class LogDispatcher:
             "ufw": UfwParser(),
         }
 
-    # Ana giriş
+    # MAIN
 
     def dispatch(self, source: str, line: str):
         """
@@ -53,24 +53,10 @@ class LogDispatcher:
         try:
             event = parser.parse(line)
 
-            # self.save_to_db(event)
+            # self.save_to_db(event) # we dont save it in here anymore, instead in the eventparser
 
             return event
 
         except Exception as e:
             return None
 
-    # DB write 
-
-    def save_to_db(self, event: dict):
-        """
-        DB write işlemi artık doğrudan yapılmaz,
-        event DBWriter queue'suna bırakılır.
-        """
-
-        try:
-            event["type"] = "LOG_EVENT"
-            logger.debug(f"[LogDispatcher] Enqueuing event to DBWriter: {event}")
-            services.db_writer.enqueue(event)
-        except Exception:
-            pass

@@ -104,9 +104,7 @@ class DBWriter:
             self._write(MetricModel, payload, etype)
 
         elif etype == "ALERT":
-            # Yarış durumunu önlemek için ALERT işlenmeden önce 
-            # milisaniyelik bir esneklik payı veriyoruz. 
-            # Bu, kuyruktaki son logların DB'ye commit edilmesini bekler.
+            # HATA PAYI
             time.sleep(0.3)
             self._save_alert(payload)
 
@@ -243,18 +241,14 @@ class DBWriter:
         valid_ids = filters.get("id__in", [])
         
         if valid_ids:
-            # Durum A: Loglar yazılmış ve ID'ler elimizde.
             q = q.filter(model.id.in_(valid_ids))
             limit = len(valid_ids)
             logger.debug(f"[DBWriter][RESOLVE] Using explicit IDs for alert_id={alert_id}")
         else:
-            # Durum B: Loglar henüz kuyrukta, ID'ler kurala yetişmedi.
-            # IP, Kategori vb. filtreleri uygula
             for field, value in filters.items():
                 if field != "id__in" and hasattr(model, field) and value is not None:
                     q = q.filter(getattr(model, field) == value)
             
-            # Zaman aralığı buffer ile uygula
             start_ts = time_range.get("from")
             end_ts = time_range.get("to")
             if start_ts and end_ts:

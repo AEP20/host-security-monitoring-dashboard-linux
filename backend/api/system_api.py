@@ -104,7 +104,7 @@ def get_thread_health():
         scheduler_hb = scheduler_instance.heartbeat  
 
     for t in list_threads():
-        hb = scheduler_hb.get(t.name)  # ← doğru kaynağı oku
+        hb = scheduler_hb.get(t.name) 
 
         hb_str = (
             time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(hb))

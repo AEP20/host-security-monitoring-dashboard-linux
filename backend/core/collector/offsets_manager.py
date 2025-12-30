@@ -17,7 +17,7 @@ class OffsetManager:
 
         self.offsets = self._load()
 
-    # Internal helpers
+    # INTERNAL HELPERS
 
     def _ensure_file_exists(self):
         """Dosya yoksa klasörü ve boş JSON dosyasını oluşturur."""
@@ -35,15 +35,13 @@ class OffsetManager:
             with open(self.state_file, "r") as f:
                 return json.load(f)
         except json.JSONDecodeError:
-            # Dosya bozulmuşsa sıfırla
+            # IF THE JSON BROKEN, RESET IT
             return {}
 
     def _save(self):
         """Güncel offsetleri dosyaya atomic şekilde yazar."""
         with open(self.state_file, "w") as f:
             json.dump(self.offsets, f, indent=4)
-
-    # Public API
 
     def get(self, key):
         """Bir log dosyası için offset’i döner. Yoksa 0 döner."""

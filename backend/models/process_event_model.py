@@ -29,19 +29,19 @@ class ProcessEventModel(Base):
     pid = Column(Integer, nullable=True, index=True)
     ppid = Column(Integer, nullable=True)
 
-    # Process adı (kısa adı)
+    # Process adı
     process_name = Column(String(200), nullable=True)
 
     # Çalıştırılan binary
     exe = Column(Text, nullable=True)
 
-    # Command line args (string olarak)
+    # Command line args 
     cmdline = Column(Text, nullable=True)
 
-    # Process'in user'ı (root mu, www-data mı vs.)
+    # Process'in userı
     username = Column(String(100), nullable=True)
 
-    # Process create_time (epoch)
+    # Process create_time 
     create_time = Column(String(50), nullable=True)
 
     # CPU & RAM usage (STATE bilgilerinden)

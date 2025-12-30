@@ -2,7 +2,7 @@ import { formatTimestamp } from "./utils.js";
 
 document.addEventListener("DOMContentLoaded", () => {
 
-    // PAGE GUARD (çok önemli)
+    // PAGE GUARD
     if (!document.getElementById("active-network-table")) {
         console.debug("[network.js] Not on network page, aborting");
         return;

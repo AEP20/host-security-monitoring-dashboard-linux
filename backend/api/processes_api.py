@@ -9,7 +9,7 @@ import time
 process_api = Blueprint("process_api", __name__)
 
 # ======================================================
-# GET /api/process/events → tüm event geçmişi
+# GET /api/process/events → ALL EVENTS
 # ======================================================
 @process_api.get("/events")
 def get_process_events():
@@ -25,7 +25,6 @@ def get_process_events():
         logger.debug("[API][PROCESS_EVENTS] Building query")
         q = session.query(ProcessEventModel)
 
-        # filtreler
         event_type = request.args.get("type")
         pid = request.args.get("pid")
 
@@ -64,7 +63,7 @@ def get_process_events():
 
 
 # ======================================================
-# GET /api/process/events/<id> → tek event
+# GET /api/process/events/<id> → SINGLE EVENT
 # ======================================================
 @process_api.get("/events/<int:event_id>")
 def get_event_detail(event_id):
@@ -85,7 +84,7 @@ def get_event_detail(event_id):
 
 
 # ======================================================
-# GET /api/process/active → şu an çalışan process'ler
+# GET /api/process/active → PROCESS RUN CURRENTLY
 # (psutil snapshot)
 # ======================================================
 @process_api.get("/active")
@@ -114,7 +113,7 @@ def active_processes():
 
 
 # ======================================================
-# DELETE /api/process/<pid> → kill
+# DELETE /api/process/<pid> → KILL, that we dont use rn
 # ======================================================
 @process_api.delete("/<int:pid>")
 def kill_process(pid):

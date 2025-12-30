@@ -8,10 +8,8 @@ class SuspiciousShellRule(StatelessRule):
     severity = "CRITICAL"
     event_prefix = "PROCESS_"
 
-    # Shell başlattığında şüpheli kabul edilen 'ebeveyn' (parent) süreçler
     SUSPICIOUS_PARENTS = ["python", "python3", "php", "node", "perl", "nc", "netcat", "socat", "lua"]
     
-    # Başlatılan shell süreçleri
     SHELL_PROCESSES = ["sh", "bash", "zsh", "dash", "rbash"]
 
     def match(self, event: Dict[str, Any]) -> bool:
@@ -21,7 +19,6 @@ class SuspiciousShellRule(StatelessRule):
         pname = (event.get("process_name") or "").lower()
         parent_pname = (event.get("parent_name") or "").lower()
 
-        # Eğer başlatılan süreç bir shell ise VE bunu başlatan süreç listedeki şüphelilerden biriyse
         if pname in self.SHELL_PROCESSES:
             if any(parent in parent_pname for parent in self.SUSPICIOUS_PARENTS):
                 logger.warning(f"[{self.rule_id}] Suspicious shell spawn: {parent_pname} -> {pname}")

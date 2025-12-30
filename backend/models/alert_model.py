@@ -8,16 +8,16 @@ class AlertModel(Base):
     id = Column(Integer, primary_key=True)
     timestamp = Column(DateTime, default=current_time, index=True)
 
-    # Hangi rule tetikledi?
+    # WHICH RULE TRIGGERED
     rule_name = Column(String(100), nullable=False)
 
-    # Severity HIGH/MEDIUM/LOW
+    # SEVERITY HIGH/MEDIUM/LOW
     severity = Column(String(20), nullable=False)
 
-    # Alert açıklaması
+    # ALERT DESC
     message = Column(Text, nullable=False)
 
-    # Hangi log event’e bağlı (optional)
+    # WHICH LOGS ARE RELATED
     log_event_id = Column(Integer, ForeignKey("log_events.id"), nullable=True)
 
     # ---------------------------------------------------

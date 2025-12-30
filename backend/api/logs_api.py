@@ -28,7 +28,6 @@ def get_log_events():
 
         query = db.query(LogEventModel).order_by(LogEventModel.timestamp.desc())
 
-        # filters debug
         for name in ["severity", "source", "category", "event_type", "search"]:
             if request.args.get(name):
                 logger.debug(f"[logs/events] Applying filter {name}={request.args.get(name)}")
@@ -82,20 +81,16 @@ def get_internal_logs():
             f.seek(0, os.SEEK_END)
             file_size = f.tell()
 
-            # Eğer dosya 50 KB'den küçükse, doğrudan oku
             if file_size <= MAX_BYTES:
                 f.seek(0)
                 raw = f.read()
             else:
-                # sondan MAX_BYTES kadar geri git
                 f.seek(-MAX_BYTES, os.SEEK_END)
                 raw = f.read()
 
-        # decode + satıra böl
         text = raw.decode(errors="ignore")
         lines = text.splitlines()
 
-        # sadece son 200 satırı al
         content = "\n".join(lines[-MAX_LINES:])
 
         logger.info(f"[logs/internal] Returning last {len(lines[-MAX_LINES:])} lines (max {MAX_BYTES} bytes)")

@@ -6,13 +6,13 @@ class HighResourceUsageRule(ThresholdRule):
     rule_id = "RES_001"
     description = "Continuous high CPU or Memory usage detected"
     severity = "MEDIUM"
-    event_prefix = "METRIC_"  # MetricsCollector METRIC_SNAPSHOT üretir
+    event_prefix = "METRIC_"  
     
-    threshold = 2          # Peş peşe 2 yüksek metrik yeterli
-    window_seconds = 180   # 3 dakikalık pencere (Snapshotların birikmesi için)
+    threshold = 2         
+    window_seconds = 180  
     
-    CPU_THRESHOLD = 70.0   # %70 üzeri CPU kullanımı
-    MEM_THRESHOLD = 80.0   # %80 üzeri RAM kullanımı
+    CPU_THRESHOLD = 70.0   # %70 üzeri CPU 
+    MEM_THRESHOLD = 80.0   # %80 üzeri RAM
 
     def is_relevant(self, event: Dict[str, Any]) -> bool:
         """Sadece metrik snapshotlarını kontrol et"""
@@ -34,7 +34,6 @@ class HighResourceUsageRule(ThresholdRule):
             return
             
         if self.match_condition(event):
-            # Loglarda bu satırı görmelisin:
             logger.debug(f"[{self.rule_id}] High usage detected: CPU %{event.get('cpu_percent')}")
             context.add(
                 rule_id=self.rule_id,
@@ -49,7 +48,6 @@ class HighResourceUsageRule(ThresholdRule):
         cpu = last_event.get("cpu_percent")
         mem = last_event.get("ram_percent")
 
-        # Kanıt olarak tetikleyici tüm snapshot ID'lerini topla
         event_ids = [e.get("id") for e in events if e.get("id")]
 
         logger.info(f"[{self.rule_id}] THRESHOLD REACHED! Generating Alert.")
@@ -58,7 +56,7 @@ class HighResourceUsageRule(ThresholdRule):
             alert_type="ALERT_HIGH_RESOURCE_USAGE",
             message=f"Critical resource usage: CPU %{cpu}, RAM %{mem} detected over {len(events)} snapshots.",
             extra=self.build_evidence_spec(
-                source="metric_events", # DBWriter'daki metrik tablosu
+                source="metric_events", 
                 filters={"id__in": event_ids}
             )
         )

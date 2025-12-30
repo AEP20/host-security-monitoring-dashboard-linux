@@ -9,8 +9,7 @@ SENSITIVE_FILES = [
     "/etc/crontab",         # Planlanmış görevler
 ]
 
-# Bazı binary'lerin bu dosyalara erişmesi normal olabilir (örn: sshd, login, sudo)
-# Gereksiz alarmları (False Positive) önlemek için istisna listesi:
+# WHITELIST
 SENSITIVE_ACCESS_WHITELIST = [
     "sshd", "login", "passwd", "chfn", "chsh"
 ]

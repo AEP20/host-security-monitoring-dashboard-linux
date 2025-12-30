@@ -16,7 +16,7 @@ class AlertEvidenceModel(Base):
 
     id = Column(Integer, primary_key=True)
 
-    # FK-like (bilinçli olarak gerçek FK kullanmıyoruz)
+    # FK-like 
     alert_id = Column(Integer, nullable=False, index=True)
 
     # Generic event reference
@@ -26,7 +26,6 @@ class AlertEvidenceModel(Base):
     # TRIGGER / SUPPORT / CONTEXT
     role = Column(String(20), nullable=False)
 
-    # Order of event inside alert (optional but powerful)
     sequence = Column(Integer, nullable=True)
 
     timestamp = Column(DateTime, default=current_time, index=True)
@@ -52,7 +51,6 @@ class AlertEvidenceModel(Base):
         )
 
 
-# Helpful composite index for alert detail queries
 Index(
     "ix_alert_evidence_alert_event",
     AlertEvidenceModel.alert_id,

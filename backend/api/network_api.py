@@ -12,7 +12,7 @@ network_api = Blueprint("network_api", __name__)
 
 
 # ======================================================
-# GET /api/network/events  → tüm network event geçmişi
+# GET /api/network/events 
 # Filtreler:
 #    ?type=NET_NEW_CONNECTION
 #    ?pid=123
@@ -53,7 +53,7 @@ def get_network_events():
 
 
 # ======================================================
-# GET /api/network/events/<id> → tek event
+# GET /api/network/events/<id> → SINGLE EVENT
 # ======================================================
 @network_api.get("/events/<int:event_id>")
 def get_network_event_detail(event_id):

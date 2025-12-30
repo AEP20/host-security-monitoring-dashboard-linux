@@ -67,15 +67,12 @@ class RuleEngine:
         # STATEFUL
         # ---------------------------
         for rule in self.stateful_rules:
-            # Rule prefix kontrolü orijinal tip üzerinden yapılır
             if not rule.supports(raw_type):
                 continue
 
             try:
-                # Event'i kuralın hafızasına (Context) ekle
                 rule.consume(event, context=self.context)
 
-                # Eşik değerlerin aşılıp aşılmadığını kontrol et
                 produced = rule.evaluate(self.context)
                 
                 if produced:

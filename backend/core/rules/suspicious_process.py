@@ -10,11 +10,9 @@ class SuspiciousProcessRule(StatelessRule):
     event_prefix = "PROCESS_"
 
     def _get_process_name(self, event: dict) -> str:
-        # Event içindeki process ismini normalize et
         return (event.get("process_name") or event.get("name") or "").lower()
 
     def match(self, event: dict) -> bool:
-        # Hacking araçları listesinde var mı kontrol et
         return self._get_process_name(event) in HACKING_TOOLS
 
     def build_alert(self, event: dict) -> dict:
@@ -24,7 +22,6 @@ class SuspiciousProcessRule(StatelessRule):
         return self.build_alert_base(
             alert_type="ALERT_PROCESS_SUSPICIOUS",
             message=f"Suspicious process detected: {pname} (PID: {pid})",
-            # Yeni helper ile evidence spec oluşturma:
             extra=self.build_evidence_spec(
                 source="process_events",
                 filters={"process_name": pname, "pid": pid},

@@ -21,11 +21,10 @@ class DpkgParser:
         if not line:
             return False
 
-        # timestamp kontrolü
+        # TIMESTAMPT CHECK
         if not TIMESTAMP.match(line):
             return False
 
-        # action kontrolü
         return any(f" {action} " in line for action in self.VALID_ACTIONS)
 
     def parse(self, line: str) -> dict:
@@ -80,7 +79,6 @@ class DpkgParser:
         return parts[-2], parts[-1]
 
     # Event Normalization 
-
     def normalize_event_type(self, action, old_ver, new_ver):
         if action == "install":
             return "PACKAGE_INSTALL"
@@ -103,8 +101,7 @@ class DpkgParser:
             return False
         return new_ver < old_ver
 
-    # Severity Estimation
-
+    #SEVERITY CALC
     def estimate_severity(self, action, package):
         if package in HACKING_TOOLS:
             return "HIGH"
