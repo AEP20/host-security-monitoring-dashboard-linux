@@ -2,19 +2,19 @@ import { formatTimestamp } from "./utils.js";
 
 const ALERTS_TIMEZONE = "Europe/Istanbul";
 
-// ALERTS-SPECIFIC TIMESTAMP HANDLER
 function formatAlertTimestamp(timestamp) {
     if (!timestamp) return "-";
 
     const date = new Date(timestamp);
     if (isNaN(date.getTime())) return timestamp;
 
-    const istanbulString = date.toLocaleString("sv-SE", {
-        timeZone: ALERTS_TIMEZONE
-    });
+    // UTC → TR (+3)
+    date.setHours(date.getHours() + 3);
 
-    return formatTimestamp(istanbulString);
+    // ISO string üretip helper'a ver
+    return formatTimestamp(date.toISOString());
 }
+
 
 document.addEventListener("DOMContentLoaded", () => {
 
