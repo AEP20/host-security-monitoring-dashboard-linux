@@ -45,10 +45,8 @@ async function fetchSystemStatus() {
             scoreValueEl.style.color = color;
             if (scoreFill) {
                 scoreFill.style.backgroundColor = color;
-                // Sıfırda bile görünürlük için %3 taban genişlik
                 scoreFill.style.width = Math.max(score, 3) + "%"; 
                 
-                // Kritik seviye glow efekti
                 if (score <= 30) {
                     scoreFill.style.boxShadow = "0 0 10px " + color;
                 } else {
@@ -120,7 +118,7 @@ async function fetchInternalLogs() {
         // ======================
         if (content.length > 14000) {
             console.warn("[WARN][fetchInternalLogs] Log too large, trimming...");
-            content = content.slice(-14000); // keep last 20k chars
+            content = content.slice(-14000);
         }
 
         // ======================

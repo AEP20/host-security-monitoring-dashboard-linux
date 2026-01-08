@@ -1,5 +1,21 @@
 import { formatTimestamp } from "./utils.js";
 
+const ALERTS_TIMEZONE = "Europe/Istanbul";
+
+// ALERTS-SPECIFIC TIMESTAMP HANDLER
+function formatAlertTimestamp(timestamp) {
+    if (!timestamp) return "-";
+
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return timestamp;
+
+    const istanbulString = date.toLocaleString("sv-SE", {
+        timeZone: ALERTS_TIMEZONE
+    });
+
+    return formatTimestamp(istanbulString);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
 
     // PAGE GUARD
@@ -10,9 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     loadAlerts();
 
-    // ==================================================
     // LOAD ALERT LIST
-    // ==================================================
     function loadAlerts() {
         fetch("/api/alerts")
             .then(res => res.json())
@@ -24,7 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     const tr = document.createElement("tr");
 
                     tr.innerHTML = `
-                        <td>${formatTimestamp(alert.timestamp)}</td>
+                        <td>${formatAlertTimestamp(alert.timestamp)}</td>
                         <td>
                             <span class="severity ${alert.severity.toLowerCase()}">
                                 ${alert.severity}
@@ -54,9 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
     }
 
-    // ==================================================
     // LOAD ALERT DETAIL + EVIDENCE
-    // ==================================================
     function loadAlertDetail(alertId) {
         fetch(`/api/alerts/${alertId}`)
             .then(res => res.json())
@@ -71,9 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
     }
 
-    // ==================================================
     // RENDER MODAL CONTENT
-    // ==================================================
     function renderAlertModal(data) {
         const alert = data.alert;
         const evidence = data.evidence || [];
@@ -81,22 +91,18 @@ document.addEventListener("DOMContentLoaded", () => {
         const container = document.getElementById("alerts-modal-body");
         container.innerHTML = "";
 
-        // -----------------------------
         // ALERT SUMMARY
-        // -----------------------------
         const summary = document.createElement("div");
         summary.className = "alert-summary";
         summary.innerHTML = `
             <h3>${alert.rule_name}</h3>
             <p><strong>Severity:</strong> ${alert.severity}</p>
-            <p><strong>Time:</strong> ${formatTimestamp(alert.timestamp)}</p>
+            <p><strong>Time:</strong> ${formatAlertTimestamp(alert.timestamp)}</p>
             <p><strong>Message:</strong> ${alert.message}</p>
         `;
         container.appendChild(summary);
 
-        // -----------------------------
         // EVIDENCE LIST
-        // -----------------------------
         const evTitle = document.createElement("h4");
         evTitle.innerText = "Related Events";
         container.appendChild(evTitle);
@@ -124,9 +130,7 @@ ${JSON.stringify(ev.event, null, 2)}
         });
     }
 
-    // ==================================================
     // MODAL CONTROL
-    // ==================================================
     function openModal() {
         document.getElementById("alerts-modal").style.display = "block";
     }
