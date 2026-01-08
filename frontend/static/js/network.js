@@ -1,5 +1,19 @@
 import { formatTimestamp } from "./utils.js";
 
+// ==============================================
+// NETWORK-SPECIFIC TIMESTAMP HANDLER (UTC → +3)
+// ==============================================
+function formatNetworkTimestamp(timestamp) {
+    if (!timestamp) return "-";
+
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return timestamp;
+
+    date.setHours(date.getHours() + 3);
+
+    return formatTimestamp(date.toISOString());
+}
+
 document.addEventListener("DOMContentLoaded", () => {
 
     // PAGE GUARD
@@ -86,7 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     const tr = document.createElement("tr");
 
                     tr.innerHTML = `
-                        <td>${formatTimestamp(ev.timestamp)}</td>
+                        <td>${formatNetworkTimestamp(ev.timestamp)}</td>
                         <td>${ev.event_type}</td>
                         <td>${ev.pid ?? "-"}</td>
                         <td>${ev.process_name ?? "-"}</td>
