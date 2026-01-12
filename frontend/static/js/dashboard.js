@@ -177,16 +177,24 @@ async function fetchThreadHealth() {
         console.log("[DEBUG][fetchThreadHealth] Threads:", data.data);
 
         data.data.forEach(th => {
+            if (!th.name || th.name.startsWith("Thread-") || th.name.includes("process_request_thread")) {
+                return;
+            }
+
             console.log(`[DEBUG][fetchThreadHealth] Adding row: ${th.name}, alive=${th.alive}`);
 
             const row = document.createElement("tr");
+            
+            const aliveBadge = th.alive 
+                ? '<span class="status-badge alive">ALIVE</span>' 
+                : '<span class="status-badge dead">DEAD</span>';
+
+            const hbText = th.alive ? th.last_heartbeat : '-';
 
             row.innerHTML = `
-                <td>${th.name}</td>
-                <td class="${th.alive ? 'thread-ok' : 'thread-dead'}">
-                    ${th.alive ? "Alive" : "Dead"}
-                </td>
-                <td>${th.last_heartbeat}</td>
+                <td style="font-weight: 500;">${th.name}</td>
+                <td>${aliveBadge}</td>
+                <td style="font-family: monospace;">${hbText}</td>
             `;
 
             tbody.appendChild(row);

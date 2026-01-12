@@ -149,6 +149,30 @@
     text-decoration: underline;
 }
 /* =====================================================
+   STATUS BADGES
+===================================================== */
+.status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-badge.alive {
+    background-color: #d1fae5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+.status-badge.dead {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+/* =====================================================
    ALERT BANNER
 ===================================================== */
 
