@@ -56,7 +56,9 @@ class Scheduler:
     # ---------------------------------------------------------
     def _run_health_loop(self):
         while True:
-            self.heartbeat["HealthThread"] = time.time()
+            now = time.time()
+            self.heartbeat["HealthThread"] = now
+            self.heartbeat["MainThread"] = now
             time.sleep(2)
 
     # ---------------------------------------------------------

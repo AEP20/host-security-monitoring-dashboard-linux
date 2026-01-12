@@ -37,12 +37,17 @@ class DBWriter:
     def __init__(self):
         self.queue: queue.Queue[Dict[str, Any]] = queue.Queue()
         self._stop_event = threading.Event()
+        self.scheduler = None  # Reference to scheduler
 
         self.worker = threading.Thread(
             target=self._run,
             name="DBWriter",
             daemon=True,
         )
+
+    def register_scheduler(self, scheduler_instance):
+        """Allows DBWriter to report heartbeat to the central scheduler."""
+        self.scheduler = scheduler_instance
 
     # -------------------------------------------------
     # LIFECYCLE
@@ -64,19 +69,13 @@ class DBWriter:
     # -------------------------------------------------
     # WORKER LOOP
     # -------------------------------------------------
-    # -------------------------------------------------
-    # WORKER LOOP
-    # -------------------------------------------------
     def _run(self):
         logger.info("[DBWriter] Worker running")
         
-        # IMPORT HERE to avoid circular import at top level
-        from backend.core.scheduler.scheduler import scheduler_instance
-
         while not self._stop_event.is_set():
-            # HEARTBEAT UPDATE
-            if scheduler_instance:
-                 scheduler_instance.heartbeat["DBWriter"] = time.time()
+            # HEARTBEAT UPDATE (Clean access via registered instance)
+            if self.scheduler:
+                 self.scheduler.heartbeat["DBWriter"] = time.time()
             
             try:
                 payload = self.queue.get(timeout=1)

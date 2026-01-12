@@ -57,6 +57,9 @@ def create_app():
     # -------------------------------------------------
     # START BACKGROUND SERVICES
     # -------------------------------------------------
+    # Dependency Injection: Link DBWriter to Scheduler for heartbeats
+    db_writer.register_scheduler(scheduler)
+    
     db_writer.start()
     logger.info("[APP] DBWriter started")
 
