@@ -247,6 +247,9 @@ async function fetchParsedLogs() {
 
 
 // ====================== RECENT ALERT CHECK ======================
+
+let currentAlertId = null; 
+
 async function fetchRecentAlerts() {
     try {
         const res = await fetch("/api/alerts?limit=1");
@@ -259,6 +262,7 @@ async function fetchRecentAlerts() {
             const latest = json.data[0];
             
             let ts = latest.timestamp;
+            // Robust parsing: Handle 6-digit microseconds which confuse some browsers
             if (ts && typeof ts === "string") {
                 if (ts.endsWith("Z")) ts = ts.slice(0, -1);
                 
@@ -282,23 +286,31 @@ async function fetchRecentAlerts() {
             const diffMs = now - alertDate;
             const fifteenMinsMs = 15 * 60 * 1000;
             
-            console.log(`[dashboard] Check recent alert. TS:${ts} Now:${now.toISOString()} Diff:${diffMs}ms`);
 
             if (diffMs < fifteenMinsMs) { 
-                bannerContainer.innerHTML = `
-                    <div class="alert-banner">
-                        <span>
-                            <strong>⚠️ RECENT SECURITY ALERT:</strong> ${latest.rule_name} (${latest.severity}) detected.
-                        </span>
-                        <a href="/alerts">View Details</a>
-                    </div>
-                `;
-                bannerContainer.style.display = "block";
+                if (currentAlertId !== latest.id) {
+                    bannerContainer.innerHTML = `
+                        <div class="alert-banner">
+                            <span>
+                                <strong>RECENT SECURITY ALERT:</strong> ${latest.rule_name} (${latest.severity}) detected.
+                            </span>
+                            <a href="/alerts">View Details</a>
+                        </div>
+                    `;
+                    bannerContainer.style.display = "block";
+                    currentAlertId = latest.id;
+                    console.log("[dashboard] New alert banner displayed", latest.id);
+                }
                 return;
             }
         }
         
-        bannerContainer.style.display = "none";
+        if (currentAlertId !== null) {
+             bannerContainer.style.display = "none";
+             bannerContainer.innerHTML = "";
+             currentAlertId = null;
+             console.log("[dashboard] Alert banner hidden");
+        }
         
     } catch (e) {
         console.error("[dashboard] Recent alert fetch error:", e);
