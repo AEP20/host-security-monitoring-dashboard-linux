@@ -245,6 +245,51 @@ async function fetchParsedLogs() {
 }
 
 
+
+// ====================== RECENT ALERT CHECK ======================
+async function fetchRecentAlerts() {
+    try {
+        const res = await fetch("/api/alerts?limit=1");
+        const json = await res.json();
+        
+        const bannerContainer = document.getElementById("alert-banner-container");
+        if (!bannerContainer) return;
+
+        if (json.data && json.data.length > 0) {
+            const latest = json.data[0];
+            
+            let ts = latest.timestamp;
+            if (ts && !ts.endsWith("Z") && !ts.includes("+") && !ts.includes("-")) {
+                ts += "Z"; 
+            }
+            
+            const alertDate = new Date(ts);
+            const now = new Date();
+            const diffMs = now - alertDate;
+            const fifteenMinsMs = 15 * 60 * 1000;
+            
+            if (diffMs < fifteenMinsMs) { 
+                bannerContainer.innerHTML = `
+                    <div class="alert-banner">
+                        <span>
+                            <strong>⚠️ RECENT SECURITY ALERT:</strong> ${latest.rule_name} (${latest.severity}) detected.
+                        </span>
+                        <a href="/alerts">View Details</a>
+                    </div>
+                `;
+                bannerContainer.style.display = "block";
+                return;
+            }
+        }
+        
+        bannerContainer.style.display = "none";
+        
+    } catch (e) {
+        console.error("Recent alert fetch error:", e);
+    }
+}
+
+
 // ====================== UPDATE ALL ======================
 function updateDashboard() {
     console.log("[DEBUG][updateDashboard] Refresh cycle triggered");
@@ -254,6 +299,7 @@ function updateDashboard() {
     fetchInternalLogs();
     fetchParsedLogs();
     fetchThreadHealth();
+    fetchRecentAlerts();
 }
 
 setInterval(() => {

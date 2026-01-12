@@ -34,7 +34,37 @@ document.addEventListener("DOMContentLoaded", () => {
                 const tbody = document.getElementById("alerts-table-body");
                 tbody.innerHTML = "";
 
-                (json.data || []).forEach(alert => {
+                const alerts = json.data || [];
+                let currentGroup = null;
+                const now = new Date();
+
+                alerts.forEach(alert => {
+                    let groupLabel = "Unknown";
+                    
+                    const alertDate = new Date(alert.timestamp);
+                    if (!isNaN(alertDate.getTime())) {
+                        const diffMs = now - alertDate;
+                        if (diffMs < 86400000 && diffMs >= 0) {
+                            groupLabel = "Last 24 Hours";
+                        } else {
+                            const displayDate = new Date(alert.timestamp);
+                            displayDate.setHours(displayDate.getHours() + 3);
+                            
+                            groupLabel = displayDate.toLocaleDateString("tr-TR", { 
+                                year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' 
+                            });
+                        }
+                    }
+
+                    if (groupLabel !== currentGroup) {
+                        currentGroup = groupLabel;
+                        const headerTr = document.createElement("tr");
+                        headerTr.innerHTML = `
+                            <td colspan="5" class="group-header">${currentGroup}</td>
+                        `;
+                        tbody.appendChild(headerTr);
+                    }
+
                     const tr = document.createElement("tr");
 
                     tr.innerHTML = `

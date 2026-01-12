@@ -87,6 +87,17 @@ h2 {
     background-color: #f4f6f8;
 }
 
+.group-header {
+    background-color: #f1f3f5;
+    font-weight: 700;
+    color: #455a64;
+    padding: 10px 12px;
+    border-bottom: 2px solid #cfd8dc;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+}
+
 /* ===============================
    SEVERITY BADGES
 ================================ */
@@ -102,7 +113,7 @@ h2 {
 }
 
 .severity.critical { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
-.severity.high     { background: #fff3e0; color: #ef6c00; border: 1px solid #ffe0b2; }
+.severity.high     { background: #fff3e0; color: #d84315; border: 1px solid #ffccbc; }
 .severity.medium   { background: #fff8e1; color: #f9a825; border: 1px solid #ffe57f; }
 .severity.low      { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
 .severity.info     { background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
