@@ -4,33 +4,18 @@
 {% block page_title %}System Logs{% endblock %}
 
 {% block extra_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/log_components.css') }}">
 <style>
-    .log-container {
-        background: #111;
-        color: #ddd;
-        padding: 15px;
-        border-radius: 8px;
-        height: 350px;
-        overflow-y: scroll;
-        font-family: monospace;
-        white-space: pre-wrap;
-        margin-bottom: 25px;
-    }
+.event-table {
+    width: 100%;
+    margin-top: 20px;
+    border-collapse: collapse;
+}
 
-    .event-table {
-        width: 100%;
-        margin-top: 20px;
-        border-collapse: collapse;
-    }
-
-    .event-table th, .event-table td {
-        padding: 6px 8px;
-        border-bottom: 1px solid #333;
-    }
-
-    .log-info { color: #4fc3f7; }
-    .log-warn { color: #ffeb3b; }
-    .log-error { color: #ff5252; }
+.event-table th, .event-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid #333;
+}
 </style>
 {% endblock %}
 
@@ -39,23 +24,83 @@
 <!-- <h1>System Logs</h1> -->
 
 <h2>Internal Application Logs</h2>
-<div id="internal-log-box" class="log-container">
+<div id="internal-log-box" class="log-viewer log-viewer--dashboard">
     Loading...
 </div>
 
+
+<div class="log-controls" style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+    <select id="filter-severity" class="form-select">
+        <option value="">All Severities</option>
+        <option value="CRITICAL">CRITICAL</option>
+        <option value="HIGH">HIGH</option>
+        <option value="MEDIUM">MEDIUM</option>
+        <option value="LOW">LOW</option>
+        <option value="INFO">INFO</option>
+    </select>
+
+    <select id="filter-source" class="form-select">
+        <option value="">All Sources</option>
+        <option value="auditd">auditd</option>
+        <option value="syslog">syslog</option>
+        <option value="auth">auth</option>
+    </select>
+
+    <select id="filter-category" class="form-select">
+        <option value="">All Categories</option>
+        <option value="AUTH">AUTH</option>
+        <option value="PROCESS">PROCESS</option>
+        <option value="NETWORK">NETWORK</option>
+        <option value="FILE">FILE</option>
+    </select>
+    
+    <input type="text" id="filter-search" class="form-input" placeholder="Search logs..." style="flex-grow: 1;">
+    
+    <button id="btn-apply-filter" class="btn btn-primary">Apply</button>
+    <button id="btn-clear-filter" class="btn btn-secondary">Clear</button>
+</div>
+
 <h2>Parsed Event Logs</h2>
-<table class="event-table">
-    <thead>
-        <tr>
-            <th>Time</th>
-            <th>Type</th>
-            <th>Severity</th>
-            <th>Message</th>
-        </tr>
-    </thead>
-    <tbody id="event-table-body">
-    </tbody>
-</table>
+<div style="overflow-x: auto;">
+    <table class="event-table">
+        <thead>
+            <tr>
+                <th style="width: 160px;">Timestamp</th>
+                <th style="width: 80px;">Severity</th>
+                <th>Alerts</th>
+                <th>Category</th>
+                <th>Source</th>
+                <th>Type</th>
+                <th>User</th>
+                <th>IP</th>
+                <th>Process</th>
+                <th>Message</th>
+            </tr>
+        </thead>
+        <tbody id="event-table-body">
+        </tbody>
+    </table>
+</div>
+
+<div style="text-align: center; margin-top: 20px;">
+    <button id="btn-load-more" class="btn btn-secondary" style="width: 100%;">Load More</button>
+</div>
+
+
+<!-- ================== DETAIL MODAL ================== -->
+<div id="log-detail-modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center;">
+    <div class="modal-content" style="background: #1e1e1e; padding: 25px; border-radius: 8px; width: 800px; max-width: 90%; max-height: 90vh; overflow-y: auto; border: 1px solid #333; color: #fff;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+            <h3 style="margin: 0;">Log Details</h3>
+            <span id="close-modal" style="cursor: pointer; font-size: 24px;">&times;</span>
+        </div>
+        
+        <div id="modal-body">
+            <!-- Dynamic Content -->
+        </div>
+    </div>
+</div>
+
 
 {% endblock %}
 

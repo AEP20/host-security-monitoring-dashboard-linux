@@ -1,9 +1,9 @@
-# logs_api.py
-
 from flask import Blueprint, request
 from backend.api.utils.response_wrapper import success, error
 from backend.database import SessionLocal
 from backend.models.log_model import LogEventModel
+from backend.models.alert_model import AlertModel
+from backend.models.alert_evidence_model import AlertEvidenceModel
 import os
 from backend.logger import logger
 
@@ -18,19 +18,11 @@ logs_api = Blueprint("logs_api", __name__)
 
 @logs_api.get("/events")
 def get_log_events():
-    logger.debug(f"[logs/events] Query params: {dict(request.args)}")
-
     try:
         db = SessionLocal()
-
         limit = int(request.args.get("limit", 500))
         offset = int(request.args.get("offset", 0))
-
         query = db.query(LogEventModel).order_by(LogEventModel.timestamp.desc())
-
-        for name in ["severity", "source", "category", "event_type", "search"]:
-            if request.args.get(name):
-                logger.debug(f"[logs/events] Applying filter {name}={request.args.get(name)}")
 
         if request.args.get("severity"):
             query = query.filter(LogEventModel.severity == request.args["severity"])
@@ -40,21 +32,77 @@ def get_log_events():
             query = query.filter(LogEventModel.category == request.args["category"])
         if request.args.get("event_type"):
             query = query.filter(LogEventModel.event_type == request.args["event_type"])
-
         if request.args.get("search"):
             term = f"%{request.args['search']}%"
             query = query.filter(LogEventModel.message.ilike(term))
-            logger.debug(f"[logs/events] Search term applied: {term}")
 
         rows = query.limit(limit).offset(offset).all()
+        log_ids = [r.id for r in rows]
+        
+        related_alerts_map = {uid: [] for uid in log_ids}
+        
+        if log_ids:
+            direct_alerts = db.query(AlertModel).filter(AlertModel.log_event_id.in_(log_ids)).all()
+            for alert in direct_alerts:
+                if alert.log_event_id in related_alerts_map:
+                    related_alerts_map[alert.log_event_id].append(alert)
+
+            evidence_items = db.query(AlertEvidenceModel).filter(
+                AlertEvidenceModel.event_type == 'LOG_EVENT',
+                AlertEvidenceModel.event_id.in_(log_ids)
+            ).all()
+
+            if evidence_items:
+                evidence_alert_ids = [ev.alert_id for ev in evidence_items]
+                linked_alerts = db.query(AlertModel).filter(AlertModel.id.in_(evidence_alert_ids)).all()
+                alert_lookup = {a.id: a for a in linked_alerts}
+
+                for ev in evidence_items:
+                    if ev.event_id in related_alerts_map and ev.alert_id in alert_lookup:
+                        related_alerts_map[ev.event_id].append(alert_lookup[ev.alert_id])
+
+        results = []
+        expand_details = request.args.get("expand") == "true"
+
+        for row in rows:
+            d = row.to_dict()
+            alerts = related_alerts_map.get(row.id, [])
+            
+            unique_alerts = {}
+            for a in alerts:
+                unique_alerts[a.id] = a
+            
+            final_alerts = list(unique_alerts.values())
+            d["related_alerts_count"] = len(final_alerts)
+            
+            severities = [a.severity for a in final_alerts]
+            
+            if "CRITICAL" in severities:
+                d["related_alerts_max_severity"] = "CRITICAL"
+            elif "HIGH" in severities:
+                d["related_alerts_max_severity"] = "HIGH"
+            elif "MEDIUM" in severities:
+                d["related_alerts_max_severity"] = "MEDIUM"
+            elif "LOW" in severities:
+                d["related_alerts_max_severity"] = "LOW"
+            else:
+                d["related_alerts_max_severity"] = None
+
+            if expand_details:
+                d["related_alerts"] = [{
+                    "id": a.id,
+                    "rule_name": a.rule_name,
+                    "severity": a.severity,
+                    "timestamp": a.timestamp.isoformat() if a.timestamp else None
+                } for a in final_alerts]
+
+            results.append(d)
+
         db.close()
-
-        logger.info(f"[logs/events] Returned {len(rows)} events (limit={limit}, offset={offset})")
-
-        return success(data=[row.to_dict() for row in rows])
+        return success(data=results)
 
     except Exception as e:
-        logger.exception(f"[logs/events] Unhandled exception: {e}")
+        if 'db' in locals(): db.close()
         return error("Failed to retrieve log events", exception=e, status_code=500)
 
 

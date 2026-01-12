@@ -5,6 +5,7 @@
 
 {% block extra_styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/log_components.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -47,7 +48,7 @@
 <!-- ================== APPLICATION LOG VIEWER ================== -->
 <h2>Application Logs</h2>
 
-<div id="internal-log-box" class="log-box">
+<div id="internal-log-box" class="log-viewer log-viewer--dashboard">
     Loading logs...
 </div>
 

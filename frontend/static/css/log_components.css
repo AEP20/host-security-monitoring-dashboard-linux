@@ -1,0 +1,65 @@
+
+.log-viewer {
+    background: #111;
+    color: #eee;
+    padding: 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    border: 1px solid #222;
+    margin-bottom: 25px;
+    font-family: inherit;
+}
+
+.log-viewer--dashboard {
+    max-height: 280px;
+}
+
+.log-viewer--full {
+    height: 600px; 
+}
+
+.log-info { color: #6fa8ff; }
+.log-warn { color: #f0c94a; }
+.log-error { color: #ff6b6b; }
+
+
+.status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-badge.alive {
+    background-color: #d1fae5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+.status-badge.dead {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+.badge-info {
+    background-color: #d1fae5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+.badge-warn {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+.badge-error {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}

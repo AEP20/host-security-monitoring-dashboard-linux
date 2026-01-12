@@ -39,27 +39,7 @@
     transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.5s ease;
 }
 
-/* =====================================================
-   APPLICATION LOG VIEWER
-===================================================== */
 
-.log-box {
-    background: #111;
-    color: #eee;
-    padding: 14px;
-    border-radius: 8px;
-    font-family: monospace;
-    font-size: 13px;
-    max-height: 280px;
-    overflow-y: auto;
-    white-space: pre-wrap;
-    border: 1px solid #222;
-    margin-bottom: 32px;
-}
-
-.log-info  { color: #6fa8ff; }
-.log-warn  { color: #f0c94a; }
-.log-error { color: #ff6b6b; }
 
 
 /* =====================================================
@@ -148,29 +128,7 @@
 .view-all:hover {
     text-decoration: underline;
 }
-/* =====================================================
-   STATUS BADGES
-===================================================== */
-.status-badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-}
 
-.status-badge.alive {
-    background-color: #d1fae5;
-    color: #047857;
-    border: 1px solid #a7f3d0;
-}
-
-.status-badge.dead {
-    background-color: #fee2e2;
-    color: #b91c1c;
-    border: 1px solid #fecaca;
-}
 
 /* =====================================================
    ALERT BANNER
