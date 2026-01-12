@@ -81,9 +81,7 @@ class Scheduler:
     # ---------------------------------------------------------
     # GENERIC LOOP (Process / Network)
     # ---------------------------------------------------------
-    # ---------------------------------------------------------
-    # GENERIC LOOP (Process / Network)
-    # ---------------------------------------------------------
+
     def _run_collector_loop(self, collector, interval, name):
         # NOTE: 'name' here comes from the args passed in start()
         # We must ensure start() passes "ProcessThread" / "NetworkThread"
