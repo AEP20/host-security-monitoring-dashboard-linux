@@ -56,7 +56,7 @@ class Scheduler:
     # ---------------------------------------------------------
     def _run_health_loop(self):
         while True:
-            self.heartbeat["MainThread"] = time.time()
+            self.heartbeat["HealthThread"] = time.time()
             time.sleep(2)
 
     # ---------------------------------------------------------
@@ -81,11 +81,19 @@ class Scheduler:
     # ---------------------------------------------------------
     # GENERIC LOOP (Process / Network)
     # ---------------------------------------------------------
+    # ---------------------------------------------------------
+    # GENERIC LOOP (Process / Network)
+    # ---------------------------------------------------------
     def _run_collector_loop(self, collector, interval, name):
-        logger.info(f"[Scheduler] {name} started ({interval}s interval)")
+        # NOTE: 'name' here comes from the args passed in start()
+        # We must ensure start() passes "ProcessThread" / "NetworkThread"
+        # OR we just map it here. To be safe/simple, we will use the actual thread name.
+        
+        thread_name = threading.current_thread().name
+        logger.info(f"[Scheduler] {thread_name} started ({interval}s interval)")
 
         while True:
-            self.heartbeat[name] = time.time()
+            self.heartbeat[thread_name] = time.time()
 
             try:
                 events = collector.step()
@@ -94,7 +102,7 @@ class Scheduler:
                     self.event_dispatcher.dispatch(ev)
 
             except Exception:
-                logger.exception(f"[Scheduler] {name} error")
+                logger.exception(f"[Scheduler] {thread_name} error")
 
             time.sleep(interval)
 

@@ -64,10 +64,20 @@ class DBWriter:
     # -------------------------------------------------
     # WORKER LOOP
     # -------------------------------------------------
+    # -------------------------------------------------
+    # WORKER LOOP
+    # -------------------------------------------------
     def _run(self):
         logger.info("[DBWriter] Worker running")
+        
+        # IMPORT HERE to avoid circular import at top level
+        from backend.core.scheduler.scheduler import scheduler_instance
 
         while not self._stop_event.is_set():
+            # HEARTBEAT UPDATE
+            if scheduler_instance:
+                 scheduler_instance.heartbeat["DBWriter"] = time.time()
+            
             try:
                 payload = self.queue.get(timeout=1)
             except queue.Empty:
