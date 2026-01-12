@@ -259,15 +259,31 @@ async function fetchRecentAlerts() {
             const latest = json.data[0];
             
             let ts = latest.timestamp;
-            if (ts && !ts.endsWith("Z") && !ts.includes("+") && !ts.includes("-")) {
+            if (ts && typeof ts === "string") {
+                if (ts.endsWith("Z")) ts = ts.slice(0, -1);
+                
+                const dotIndex = ts.indexOf(".");
+                if (dotIndex !== -1) {
+                    const parts = ts.split(".");
+                    if (parts[1].length > 3) {
+                        ts = parts[0] + "." + parts[1].substring(0, 3);
+                    }
+                }
                 ts += "Z"; 
             }
             
             const alertDate = new Date(ts);
+            if (isNaN(alertDate.getTime())) {
+                console.warn("[dashboard] Invalid alert timestamp:", ts);
+                return;
+            }
+
             const now = new Date();
             const diffMs = now - alertDate;
             const fifteenMinsMs = 15 * 60 * 1000;
             
+            console.log(`[dashboard] Check recent alert. TS:${ts} Now:${now.toISOString()} Diff:${diffMs}ms`);
+
             if (diffMs < fifteenMinsMs) { 
                 bannerContainer.innerHTML = `
                     <div class="alert-banner">
@@ -285,7 +301,7 @@ async function fetchRecentAlerts() {
         bannerContainer.style.display = "none";
         
     } catch (e) {
-        console.error("Recent alert fetch error:", e);
+        console.error("[dashboard] Recent alert fetch error:", e);
     }
 }
 
