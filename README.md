@@ -46,3 +46,7 @@ sudo truncate -s 0 /var/log/hids/app.log # Uygulama içi logları temizle
 sudo nmap -T1 -p- 127.0.0.1 # test scan
 sudo tcpdump -i lo     # test capture
 ```
+
+## Contributors
+- Ahmet Emre Parmaksız (@AEP20)
+- Deniz Özmen (@dozmen23)
