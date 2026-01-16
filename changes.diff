@@ -1,0 +1,674 @@
+diff --git a/backend/api/logs_api.py b/backend/api/logs_api.py
+index def2064..5a988da 100644
+--- a/backend/api/logs_api.py
++++ b/backend/api/logs_api.py
+@@ -1,9 +1,9 @@
+-# logs_api.py
+-
+ from flask import Blueprint, request
+ from backend.api.utils.response_wrapper import success, error
+ from backend.database import SessionLocal
+ from backend.models.log_model import LogEventModel
++from backend.models.alert_model import AlertModel
++from backend.models.alert_evidence_model import AlertEvidenceModel
+ import os
+ from backend.logger import logger
+ 
+@@ -18,20 +18,12 @@ logs_api = Blueprint("logs_api", __name__)
+ 
+ @logs_api.get("/events")
+ def get_log_events():
+-    logger.debug(f"[logs/events] Query params: {dict(request.args)}")
+-
+     try:
+         db = SessionLocal()
+-
+         limit = int(request.args.get("limit", 500))
+         offset = int(request.args.get("offset", 0))
+-
+         query = db.query(LogEventModel).order_by(LogEventModel.timestamp.desc())
+ 
+-        for name in ["severity", "source", "category", "event_type", "search"]:
+-            if request.args.get(name):
+-                logger.debug(f"[logs/events] Applying filter {name}={request.args.get(name)}")
+-
+         if request.args.get("severity"):
+             query = query.filter(LogEventModel.severity == request.args["severity"])
+         if request.args.get("source"):
+@@ -40,21 +32,77 @@ def get_log_events():
+             query = query.filter(LogEventModel.category == request.args["category"])
+         if request.args.get("event_type"):
+             query = query.filter(LogEventModel.event_type == request.args["event_type"])
+-
+         if request.args.get("search"):
+             term = f"%{request.args['search']}%"
+             query = query.filter(LogEventModel.message.ilike(term))
+-            logger.debug(f"[logs/events] Search term applied: {term}")
+ 
+         rows = query.limit(limit).offset(offset).all()
+-        db.close()
++        log_ids = [r.id for r in rows]
++        
++        related_alerts_map = {uid: [] for uid in log_ids}
++        
++        if log_ids:
++            direct_alerts = db.query(AlertModel).filter(AlertModel.log_event_id.in_(log_ids)).all()
++            for alert in direct_alerts:
++                if alert.log_event_id in related_alerts_map:
++                    related_alerts_map[alert.log_event_id].append(alert)
++
++            evidence_items = db.query(AlertEvidenceModel).filter(
++                AlertEvidenceModel.event_type == 'LOG_EVENT',
++                AlertEvidenceModel.event_id.in_(log_ids)
++            ).all()
++
++            if evidence_items:
++                evidence_alert_ids = [ev.alert_id for ev in evidence_items]
++                linked_alerts = db.query(AlertModel).filter(AlertModel.id.in_(evidence_alert_ids)).all()
++                alert_lookup = {a.id: a for a in linked_alerts}
++
++                for ev in evidence_items:
++                    if ev.event_id in related_alerts_map and ev.alert_id in alert_lookup:
++                        related_alerts_map[ev.event_id].append(alert_lookup[ev.alert_id])
++
++        results = []
++        expand_details = request.args.get("expand") == "true"
++
++        for row in rows:
++            d = row.to_dict()
++            alerts = related_alerts_map.get(row.id, [])
++            
++            unique_alerts = {}
++            for a in alerts:
++                unique_alerts[a.id] = a
++            
++            final_alerts = list(unique_alerts.values())
++            d["related_alerts_count"] = len(final_alerts)
++            
++            severities = [a.severity for a in final_alerts]
++            
++            if "CRITICAL" in severities:
++                d["related_alerts_max_severity"] = "CRITICAL"
++            elif "HIGH" in severities:
++                d["related_alerts_max_severity"] = "HIGH"
++            elif "MEDIUM" in severities:
++                d["related_alerts_max_severity"] = "MEDIUM"
++            elif "LOW" in severities:
++                d["related_alerts_max_severity"] = "LOW"
++            else:
++                d["related_alerts_max_severity"] = None
+ 
+-        logger.info(f"[logs/events] Returned {len(rows)} events (limit={limit}, offset={offset})")
++            if expand_details:
++                d["related_alerts"] = [{
++                    "id": a.id,
++                    "rule_name": a.rule_name,
++                    "severity": a.severity,
++                    "timestamp": a.timestamp.isoformat() if a.timestamp else None
++                } for a in final_alerts]
+ 
+-        return success(data=[row.to_dict() for row in rows])
++            results.append(d)
++
++        db.close()
++        return success(data=results)
+ 
+     except Exception as e:
+-        logger.exception(f"[logs/events] Unhandled exception: {e}")
++        if 'db' in locals(): db.close()
+         return error("Failed to retrieve log events", exception=e, status_code=500)
+ 
+ 
+diff --git a/frontend/static/css/dashboard.css b/frontend/static/css/dashboard.css
+index 1051c59..d27264f 100644
+--- a/frontend/static/css/dashboard.css
++++ b/frontend/static/css/dashboard.css
+@@ -39,27 +39,7 @@
+     transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.5s ease;
+ }
+ 
+-/* =====================================================
+-   APPLICATION LOG VIEWER
+-===================================================== */
+-
+-.log-box {
+-    background: #111;
+-    color: #eee;
+-    padding: 14px;
+-    border-radius: 8px;
+-    font-family: monospace;
+-    font-size: 13px;
+-    max-height: 280px;
+-    overflow-y: auto;
+-    white-space: pre-wrap;
+-    border: 1px solid #222;
+-    margin-bottom: 32px;
+-}
+ 
+-.log-info  { color: #6fa8ff; }
+-.log-warn  { color: #f0c94a; }
+-.log-error { color: #ff6b6b; }
+ 
+ 
+ /* =====================================================
+@@ -148,29 +128,7 @@
+ .view-all:hover {
+     text-decoration: underline;
+ }
+-/* =====================================================
+-   STATUS BADGES
+-===================================================== */
+-.status-badge {
+-    display: inline-block;
+-    padding: 3px 10px;
+-    border-radius: 12px;
+-    font-size: 11px;
+-    font-weight: 700;
+-    text-transform: uppercase;
+-}
+ 
+-.status-badge.alive {
+-    background-color: #d1fae5;
+-    color: #047857;
+-    border: 1px solid #a7f3d0;
+-}
+-
+-.status-badge.dead {
+-    background-color: #fee2e2;
+-    color: #b91c1c;
+-    border: 1px solid #fecaca;
+-}
+ 
+ /* =====================================================
+    ALERT BANNER
+diff --git a/frontend/static/js/logs.js b/frontend/static/js/logs.js
+index de3e25a..17c9a9b 100644
+--- a/frontend/static/js/logs.js
++++ b/frontend/static/js/logs.js
+@@ -1,6 +1,12 @@
+-
+ import { formatTimestamp } from "./utils.js";
+ 
++let currentOffset = 0;
++const LIMIT = 50;
++let isLoading = false;
++
++// ============================================
++// INTERNAL LOGS (UNCHANGED)
++// ============================================
+ async function fetchInternalLogs() {
+     try {
+         const res = await fetch("/api/logs/internal");
+@@ -16,45 +22,287 @@ async function fetchInternalLogs() {
+ 
+         logBox.innerHTML = content;
+         logBox.scrollTop = logBox.scrollHeight;
+-
++        
+     } catch (err) {
+         console.error("Internal log error:", err);
+     }
+ }
+ 
+-async function fetchEventLogs() {
++
++// ============================================
++// EVENT LOGS & FILTERING
++// ============================================
++async function fetchEventLogs(append = false) {
++    if (isLoading) return;
++    isLoading = true;
++
+     try {
+-        const res = await fetch("/api/logs/events?limit=50");
+-        const json = await res.json();
++        const severity = document.getElementById("filter-severity").value;
++        const source = document.getElementById("filter-source").value;
++        const category = document.getElementById("filter-category").value;
++        const search = document.getElementById("filter-search").value;
+ 
++        if (!append) {
++            currentOffset = 0;
++            document.getElementById("event-table-body").innerHTML = "";
++        }
++
++        const params = new URLSearchParams({
++            limit: LIMIT,
++            offset: currentOffset,
++            expand: "true"
++        });
++
++        if (severity) params.append("severity", severity);
++        if (source) params.append("source", source);
++        if (category) params.append("category", category);
++        if (search) params.append("search", search);
++
++        const res = await fetch(`/api/logs/events?${params.toString()}`);
++        const json = await res.json();
+         const rows = json.data || [];
++
+         const tbody = document.getElementById("event-table-body");
+-        tbody.innerHTML = "";
++
++        if (rows.length === 0 && !append) {
++            const tr = document.createElement("tr");
++            const td = document.createElement("td");
++            td.colSpan = 10;
++            td.style.textAlign = "center";
++            td.style.padding = "20px";
++            td.textContent = "No logs found.";
++            tr.appendChild(td);
++            tbody.appendChild(tr);
++        }
+ 
+         rows.forEach(ev => {
+             const tr = document.createElement("tr");
++            tr.style.cursor = "pointer";
++            tr.onclick = () => openLogDetail(ev);
++
++            const tdTime = document.createElement("td");
++            tdTime.style.fontFamily = "monospace";
++            tdTime.textContent = formatTimestamp(ev.timestamp);
++
++            const tdSev = document.createElement("td");
++            const spanSev = document.createElement("span");
++            spanSev.textContent = ev.severity;
++            spanSev.classList.add("status-badge");
++            
++            if (ev.severity === "CRITICAL" || ev.severity === "HIGH") {
++                spanSev.classList.add("dead");
++            } else if (ev.severity === "MEDIUM" || ev.severity === "LOW") {
++                spanSev.style.background = "#fff3cd";
++                spanSev.style.color = "#856404";
++                spanSev.style.border = "1px solid #ffeeba";
++            } else if (ev.severity === "INFO") {
++                spanSev.classList.add("alive");
++            } else {
++                spanSev.style.background = "#444";
++                spanSev.style.color = "#ddd";
++            }
++            tdSev.appendChild(spanSev);
++
++            const tdAlerts = document.createElement("td");
++            if (ev.related_alerts_count > 0) {
++                const spanAlert = document.createElement("span");
++                spanAlert.textContent = `${ev.related_alerts_count} ALERTS`;
++                spanAlert.classList.add("status-badge");
++                spanAlert.style.fontSize = "10px";
++                if (ev.related_alerts_max_severity === "HIGH" || ev.related_alerts_max_severity === "CRITICAL") {
++                    spanAlert.classList.add("dead");
++                } else {
++                    spanAlert.classList.add("alive");
++                }
++                tdAlerts.appendChild(spanAlert);
++            }
++
++            const tdCat = document.createElement("td");
++            tdCat.textContent = ev.category || "-";
++
++            const tdSrc = document.createElement("td");
++            tdSrc.textContent = ev.log_source || "-";
++
++            const tdType = document.createElement("td");
++            tdType.textContent = ev.event_type || "-";
+ 
+-            tr.innerHTML = `
+-                <td>${formatTimestamp(ev.timestamp)}</td>
+-                <td>${ev.event_type}</td>
+-                <td>${ev.severity}</td>
+-                <td title="${ev.message}">${ev.message}</td>
+-            `;
++            const tdUser = document.createElement("td");
++            tdUser.textContent = ev.user || "-";
++
++            const tdIp = document.createElement("td");
++            tdIp.textContent = ev.ip_address || "-";
++
++            const tdProc = document.createElement("td");
++            tdProc.textContent = ev.process_name || "-";
++
++            const tdMsg = document.createElement("td");
++            tdMsg.textContent = ev.message;
++            tdMsg.style.maxWidth = "300px";
++            tdMsg.style.whiteSpace = "nowrap";
++            tdMsg.style.overflow = "hidden";
++            tdMsg.style.textOverflow = "ellipsis";
++            tdMsg.style.opacity = "0.8";
++
++            tr.appendChild(tdTime);
++            tr.appendChild(tdSev);
++            tr.appendChild(tdAlerts);
++            tr.appendChild(tdCat);
++            tr.appendChild(tdSrc);
++            tr.appendChild(tdType);
++            tr.appendChild(tdUser);
++            tr.appendChild(tdIp);
++            tr.appendChild(tdProc);
++            tr.appendChild(tdMsg);
+ 
+             tbody.appendChild(tr);
+         });
++        
++        if (rows.length > 0) {
++            currentOffset += rows.length;
++        }
+ 
+     } catch (e) {
+         console.error("Parsed event error:", e);
++    } finally {
++        isLoading = false;
+     }
+ }
+ 
+-function refreshAll() {
+-    fetchInternalLogs();
+-    fetchEventLogs();
++function openLogDetail(ev) {
++    const modal = document.getElementById("log-detail-modal");
++    const body = document.getElementById("modal-body");
++    body.innerHTML = "";
++
++    if (ev.related_alerts && ev.related_alerts.length > 0) {
++        const alertBox = document.createElement("div");
++        alertBox.style.marginTop = "20px";
++        alertBox.style.padding = "15px";
++        alertBox.style.background = "rgba(255,0,0,0.1)";
++        alertBox.style.border = "1px solid #ff4444";
++        alertBox.style.borderRadius = "6px";
++        
++        const h4 = document.createElement("h4");
++        h4.textContent = "⚠ Related Security Alerts";
++        h4.style.marginTop = "0";
++        h4.style.color = "#ff6b6b";
++        alertBox.appendChild(h4);
++
++        const ul = document.createElement("ul");
++        ul.style.margin = "0";
++        ul.style.paddingLeft = "20px";
++
++        ev.related_alerts.forEach(a => {
++            const li = document.createElement("li");
++            
++            const strong = document.createElement("strong");
++            strong.textContent = a.rule_name;
++            
++            const badge = document.createElement("span");
++            badge.textContent = a.severity;
++            badge.classList.add("status-badge", "dead");
++            badge.style.transform = "scale(0.8)";
++            badge.style.marginLeft = "8px";
++
++            const br = document.createElement("br");
++            const small = document.createElement("small");
++            small.textContent = formatTimestamp(a.timestamp);
++            small.style.opacity = "0.6";
++
++            li.appendChild(strong);
++            li.appendChild(badge);
++            li.appendChild(br);
++            li.appendChild(small);
++            ul.appendChild(li);
++        });
++        alertBox.appendChild(ul);
++        body.appendChild(alertBox);
++    }
++
++    const grid = document.createElement("div");
++    grid.style.display = "grid";
++    grid.style.gridTemplateColumns = "1fr 1fr";
++    grid.style.gap = "20px";
++    grid.style.marginTop = "20px";
++
++    const fields = [
++        ["Timestamp", formatTimestamp(ev.timestamp)],
++        ["Severity", ev.severity],
++        ["Source", ev.log_source],
++        ["Category", ev.category],
++        ["Event Type", ev.event_type],
++        ["User", ev.user],
++        ["IP Address", ev.ip_address],
++        ["Process Name", ev.process_name]
++    ];
++
++    fields.forEach(([label, value]) => {
++        const div = document.createElement("div");
++        div.innerHTML = `<strong>${label}:</strong> <br>`; 
++        const span = document.createElement("span");
++        span.textContent = value || "-";
++        div.appendChild(span);
++        grid.appendChild(div);
++    });
++    body.appendChild(grid);
++
++    const msgBox = document.createElement("div");
++    msgBox.style.marginTop = "20px";
++    msgBox.innerHTML = "<strong>Message:</strong>";
++    const preMsg = document.createElement("pre");
++    preMsg.textContent = ev.message;
++    preMsg.style.background = "#111";
++    preMsg.style.padding = "10px";
++    preMsg.style.borderRadius = "4px";
++    preMsg.style.whiteSpace = "pre-wrap";
++    preMsg.style.color = "#ddd";
++    msgBox.appendChild(preMsg);
++    body.appendChild(msgBox);
++
++    const rawBox = document.createElement("div");
++    rawBox.style.marginTop = "20px";
++    rawBox.innerHTML = "<strong>Raw Event Data:</strong>";
++    const preRaw = document.createElement("pre");
++    preRaw.textContent = JSON.stringify(ev, null, 2);
++    preRaw.style.background = "#111";
++    preRaw.style.padding = "10px";
++    preRaw.style.borderRadius = "4px";
++    preRaw.style.maxHeight = "200px";
++    preRaw.style.overflow = "auto";
++    preRaw.style.fontSize = "11px";
++    preRaw.style.color = "#888";
++    rawBox.appendChild(preRaw);
++    body.appendChild(rawBox);
++
++    modal.style.display = "flex";
+ }
+ 
++// ============================================
++// INITIALIZATION
++// ============================================
+ document.addEventListener("DOMContentLoaded", () => {
+-    refreshAll();
+-    setInterval(refreshAll, 5000);
++    // Buttons
++    document.getElementById("btn-apply-filter").onclick = () => fetchEventLogs(false);
++    document.getElementById("btn-clear-filter").onclick = () => {
++        document.getElementById("filter-severity").value = "";
++        document.getElementById("filter-source").value = "";
++        document.getElementById("filter-category").value = "";
++        document.getElementById("filter-search").value = "";
++        fetchEventLogs(false);
++    };
++    document.getElementById("btn-load-more").onclick = () => fetchEventLogs(true);
++
++    // Modal Close
++    document.getElementById("close-modal").onclick = () => {
++        document.getElementById("log-detail-modal").style.display = "none";
++    };
++    window.onclick = (event) => {
++        const modal = document.getElementById("log-detail-modal");
++        if (event.target == modal) {
++            modal.style.display = "none";
++        }
++    };
++
++    // Initial Load
++    fetchInternalLogs();
++    fetchEventLogs(false);
+ });
+\ No newline at end of file
+diff --git a/frontend/templates/dashboard.html b/frontend/templates/dashboard.html
+index 0d73627..44ccb93 100644
+--- a/frontend/templates/dashboard.html
++++ b/frontend/templates/dashboard.html
+@@ -5,6 +5,7 @@
+ 
+ {% block extra_styles %}
+ <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
++<link rel="stylesheet" href="{{ url_for('static', filename='css/log_components.css') }}">
+ {% endblock %}
+ 
+ {% block content %}
+@@ -47,7 +48,7 @@
+ <!-- ================== APPLICATION LOG VIEWER ================== -->
+ <h2>Application Logs</h2>
+ 
+-<div id="internal-log-box" class="log-box">
++<div id="internal-log-box" class="log-viewer log-viewer--dashboard">
+     Loading logs...
+ </div>
+ 
+diff --git a/frontend/templates/logs.html b/frontend/templates/logs.html
+index d911970..4cfa5ba 100644
+--- a/frontend/templates/logs.html
++++ b/frontend/templates/logs.html
+@@ -4,33 +4,19 @@
+ {% block page_title %}System Logs{% endblock %}
+ 
+ {% block extra_styles %}
++<link rel="stylesheet" href="{{ url_for('static', filename='css/log_components.css') }}">
+ <style>
+-    .log-container {
+-        background: #111;
+-        color: #ddd;
+-        padding: 15px;
+-        border-radius: 8px;
+-        height: 350px;
+-        overflow-y: scroll;
+-        font-family: monospace;
+-        white-space: pre-wrap;
+-        margin-bottom: 25px;
+-    }
+-
+-    .event-table {
+-        width: 100%;
+-        margin-top: 20px;
+-        border-collapse: collapse;
+-    }
+-
+-    .event-table th, .event-table td {
+-        padding: 6px 8px;
+-        border-bottom: 1px solid #333;
+-    }
+-
+-    .log-info { color: #4fc3f7; }
+-    .log-warn { color: #ffeb3b; }
+-    .log-error { color: #ff5252; }
++/* Page-specific overrides or additional styles found nowhere else */
++.event-table {
++    width: 100%;
++    margin-top: 20px;
++    border-collapse: collapse;
++}
++
++.event-table th, .event-table td {
++    padding: 6px 8px;
++    border-bottom: 1px solid #333;
++}
+ </style>
+ {% endblock %}
+ 
+@@ -39,23 +25,83 @@
+ <!-- <h1>System Logs</h1> -->
+ 
+ <h2>Internal Application Logs</h2>
+-<div id="internal-log-box" class="log-container">
++<div id="internal-log-box" class="log-viewer log-viewer--dashboard">
+     Loading...
+ </div>
+ 
++
++<div class="log-controls" style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
++    <select id="filter-severity" class="form-select">
++        <option value="">All Severities</option>
++        <option value="CRITICAL">CRITICAL</option>
++        <option value="HIGH">HIGH</option>
++        <option value="MEDIUM">MEDIUM</option>
++        <option value="LOW">LOW</option>
++        <option value="INFO">INFO</option>
++    </select>
++
++    <select id="filter-source" class="form-select">
++        <option value="">All Sources</option>
++        <option value="auditd">auditd</option>
++        <option value="syslog">syslog</option>
++        <option value="auth">auth</option>
++    </select>
++
++    <select id="filter-category" class="form-select">
++        <option value="">All Categories</option>
++        <option value="AUTH">AUTH</option>
++        <option value="PROCESS">PROCESS</option>
++        <option value="NETWORK">NETWORK</option>
++        <option value="FILE">FILE</option>
++    </select>
++    
++    <input type="text" id="filter-search" class="form-input" placeholder="Search logs..." style="flex-grow: 1;">
++    
++    <button id="btn-apply-filter" class="btn btn-primary">Apply</button>
++    <button id="btn-clear-filter" class="btn btn-secondary">Clear</button>
++</div>
++
+ <h2>Parsed Event Logs</h2>
+-<table class="event-table">
+-    <thead>
+-        <tr>
+-            <th>Time</th>
+-            <th>Type</th>
+-            <th>Severity</th>
+-            <th>Message</th>
+-        </tr>
+-    </thead>
+-    <tbody id="event-table-body">
+-    </tbody>
+-</table>
++<div style="overflow-x: auto;">
++    <table class="event-table">
++        <thead>
++            <tr>
++                <th style="width: 160px;">Timestamp</th>
++                <th style="width: 80px;">Severity</th>
++                <th>Alerts</th>
++                <th>Category</th>
++                <th>Source</th>
++                <th>Type</th>
++                <th>User</th>
++                <th>IP</th>
++                <th>Process</th>
++                <th>Message</th>
++            </tr>
++        </thead>
++        <tbody id="event-table-body">
++        </tbody>
++    </table>
++</div>
++
++<div style="text-align: center; margin-top: 20px;">
++    <button id="btn-load-more" class="btn btn-secondary" style="width: 100%;">Load More</button>
++</div>
++
++
++<!-- ================== DETAIL MODAL ================== -->
++<div id="log-detail-modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center;">
++    <div class="modal-content" style="background: #1e1e1e; padding: 25px; border-radius: 8px; width: 800px; max-width: 90%; max-height: 90vh; overflow-y: auto; border: 1px solid #333; color: #fff;">
++        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
++            <h3 style="margin: 0;">Log Details</h3>
++            <span id="close-modal" style="cursor: pointer; font-size: 24px;">&times;</span>
++        </div>
++        
++        <div id="modal-body">
++            <!-- Dynamic Content -->
++        </div>
++    </div>
++</div>
++
+ 
+ {% endblock %}
+ 

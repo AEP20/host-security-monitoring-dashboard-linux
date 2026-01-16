@@ -7,12 +7,11 @@ Tracks logs, processes, ports, CPU/RAM and detects suspicious activity through r
 - System metrics monitoring
 - Log parsing (auth, syslog, kernel)
 - Rule engine for suspicious activity
-- Config checker for insecure settings
 - Web dashboard (Flask + Jinja)
 
 ## Installation & Commands
 
-```bash
+
 # Permission Setup
 chmod +x scripts/run_dev.sh
 chmod +x scripts/venv-activate.sh
@@ -45,8 +44,25 @@ sudo truncate -s 0 /var/log/hids/app.log # Uygulama içi logları temizle
 
 sudo nmap -T1 -p- 127.0.0.1 # test scan
 sudo tcpdump -i lo     # test capture
-```
+
+flask --app backend.dev_app --debug run -p 3001 # dev run
+
+HIDS_API_MODE=real HIDS_BACKEND_URL=http://192.168.x.x:5000 \
+flask --app backend.dev_app --debug run -p 3001 # dev run with real api
+
+
+WHERE alert_id IN (
+    SELECT id
+    FROM alerts
+    WHERE timestamp >= datetime('now', '-1 day')
+);
+sqlite> DELETE FROM alerts
+WHERE timestamp >= datetime('now', '-1 day');
+sqlite> exi
+
 
 ## Contributors
 - Ahmet Emre Parmaksız (@AEP20)
 - Deniz Özmen (@dozmen23)
+
+```

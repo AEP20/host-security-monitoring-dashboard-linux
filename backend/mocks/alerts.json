@@ -1,0 +1,101 @@
+{
+  "alerts": [
+    {
+      "id": 101,
+      "timestamp": "2026-01-16T10:54:35",
+      "rule_name": "SSH_BRUTEFORCE",
+      "severity": "HIGH",
+      "message": "Multiple failed SSH login attempts detected from 192.168.1.100",
+      "log_event_id": 501
+    },
+    {
+      "id": 100,
+      "timestamp": "2026-01-16T10:48:25",
+      "rule_name": "SENSITIVE_FILE_ACCESS",
+      "severity": "MEDIUM",
+      "message": "Sensitive file /etc/shadow accessed by user1",
+      "log_event_id": 498
+    },
+    {
+      "id": 99,
+      "timestamp": "2026-01-15T22:30:15",
+      "rule_name": "ROOT_LOGIN",
+      "severity": "HIGH",
+      "message": "Direct root login detected from 10.0.0.50",
+      "log_event_id": 480
+    },
+    {
+      "id": 98,
+      "timestamp": "2026-01-15T18:45:00",
+      "rule_name": "SUSPICIOUS_PROCESS",
+      "severity": "CRITICAL",
+      "message": "Process 'nc' with suspicious network activity detected",
+      "log_event_id": null
+    }
+  ],
+  "details": {
+    "101": {
+      "alert": {
+        "id": 101,
+        "timestamp": "2026-01-16T10:54:35",
+        "rule_name": "SSH_BRUTEFORCE",
+        "severity": "HIGH",
+        "message": "Multiple failed SSH login attempts detected from 192.168.1.100",
+        "log_event_id": 501
+      },
+      "evidence": [
+        {
+          "role": "TRIGGER",
+          "sequence": 1,
+          "event_type": "LOG_EVENT",
+          "event": {
+            "id": 501,
+            "timestamp": "2026-01-16T10:54:32",
+            "log_source": "auth",
+            "event_type": "FAILED_LOGIN",
+            "message": "Failed SSH login attempt for user 'admin' from 192.168.1.100",
+            "user": "admin",
+            "ip_address": "192.168.1.100"
+          }
+        },
+        {
+          "role": "CONTEXT",
+          "sequence": 2,
+          "event_type": "LOG_EVENT",
+          "event": {
+            "id": 500,
+            "timestamp": "2026-01-16T10:54:28",
+            "log_source": "auth",
+            "event_type": "FAILED_LOGIN",
+            "message": "Failed SSH login attempt for user 'root' from 192.168.1.100"
+          }
+        }
+      ]
+    },
+    "100": {
+      "alert": {
+        "id": 100,
+        "timestamp": "2026-01-16T10:48:25",
+        "rule_name": "SENSITIVE_FILE_ACCESS",
+        "severity": "MEDIUM",
+        "message": "Sensitive file /etc/shadow accessed by user1",
+        "log_event_id": 498
+      },
+      "evidence": [
+        {
+          "role": "TRIGGER",
+          "sequence": 1,
+          "event_type": "LOG_EVENT",
+          "event": {
+            "id": 498,
+            "timestamp": "2026-01-16T10:48:22",
+            "log_source": "auth",
+            "event_type": "SUDO_COMMAND",
+            "message": "User 'user1' executed sudo command: /bin/cat /etc/shadow",
+            "user": "user1"
+          }
+        }
+      ]
+    }
+  }
+}

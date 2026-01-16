@@ -1,0 +1,99 @@
+{
+  "events": [
+    {
+      "id": 501,
+      "timestamp": "2026-01-16T10:54:32",
+      "log_source": "auth",
+      "event_type": "FAILED_LOGIN",
+      "category": "AUTH",
+      "severity": "HIGH",
+      "raw_log": "Jan 16 10:54:32 server sshd[12345]: Failed password for invalid user admin from 192.168.1.100 port 54321 ssh2",
+      "message": "Failed SSH login attempt for user 'admin' from 192.168.1.100",
+      "user": "admin",
+      "ip_address": "192.168.1.100",
+      "process_name": "sshd",
+      "rule_triggered": "SSH_BRUTEFORCE",
+      "extra_data": null,
+      "related_alerts_count": 1,
+      "related_alerts_max_severity": "HIGH",
+      "related_alerts": [
+        {"id": 101, "rule_name": "SSH_BRUTEFORCE", "severity": "HIGH", "timestamp": "2026-01-16T10:54:35"}
+      ]
+    },
+    {
+      "id": 500,
+      "timestamp": "2026-01-16T10:52:15",
+      "log_source": "syslog",
+      "event_type": "SERVICE_START",
+      "category": "SYSTEM",
+      "severity": "INFO",
+      "raw_log": "Jan 16 10:52:15 server systemd[1]: Started nginx.service",
+      "message": "Service nginx started successfully",
+      "user": null,
+      "ip_address": null,
+      "process_name": "systemd",
+      "rule_triggered": null,
+      "extra_data": null,
+      "related_alerts_count": 0,
+      "related_alerts_max_severity": null,
+      "related_alerts": []
+    },
+    {
+      "id": 499,
+      "timestamp": "2026-01-16T10:50:08",
+      "log_source": "dpkg",
+      "event_type": "PACKAGE_INSTALL",
+      "category": "PACKAGE",
+      "severity": "LOW",
+      "raw_log": "2026-01-16 10:50:08 install curl:amd64 7.68.0-1ubuntu2.6",
+      "message": "Package 'curl' version 7.68.0-1ubuntu2.6 installed",
+      "user": "root",
+      "ip_address": null,
+      "process_name": "dpkg",
+      "rule_triggered": null,
+      "extra_data": null,
+      "related_alerts_count": 0,
+      "related_alerts_max_severity": null,
+      "related_alerts": []
+    },
+    {
+      "id": 498,
+      "timestamp": "2026-01-16T10:48:22",
+      "log_source": "auth",
+      "event_type": "SUDO_COMMAND",
+      "category": "AUTH",
+      "severity": "MEDIUM",
+      "raw_log": "Jan 16 10:48:22 server sudo: user1 : TTY=pts/0 ; PWD=/home/user1 ; USER=root ; COMMAND=/bin/cat /etc/shadow",
+      "message": "User 'user1' executed sudo command: /bin/cat /etc/shadow",
+      "user": "user1",
+      "ip_address": null,
+      "process_name": "sudo",
+      "rule_triggered": "SENSITIVE_FILE_ACCESS",
+      "extra_data": null,
+      "related_alerts_count": 1,
+      "related_alerts_max_severity": "MEDIUM",
+      "related_alerts": [
+        {"id": 100, "rule_name": "SENSITIVE_FILE_ACCESS", "severity": "MEDIUM", "timestamp": "2026-01-16T10:48:25"}
+      ]
+    },
+    {
+      "id": 497,
+      "timestamp": "2026-01-16T10:45:00",
+      "log_source": "kernel",
+      "event_type": "KERNEL_WARNING",
+      "category": "KERNEL",
+      "severity": "MEDIUM",
+      "raw_log": "Jan 16 10:45:00 server kernel: [12345.678] CPU0: Package temperature above threshold",
+      "message": "CPU thermal warning detected",
+      "user": null,
+      "ip_address": null,
+      "process_name": "kernel",
+      "rule_triggered": null,
+      "extra_data": null,
+      "related_alerts_count": 0,
+      "related_alerts_max_severity": null,
+      "related_alerts": []
+    }
+  ],
+  "internal": "2026-01-16 10:55:00 INFO [APP] System status check completed\n2026-01-16 10:54:55 INFO [COLLECTOR] Log batch processed: 5 events\n2026-01-16 10:54:50 INFO [RULE_ENGINE] Evaluated 5 events, 2 alerts generated\n2026-01-16 10:54:45 WARNING [NETWORK] High connection count detected: 150 active\n2026-01-16 10:54:40 INFO [METRICS] Snapshot saved to database\n2026-01-16 10:54:35 INFO [ALERT] New alert created: SSH_BRUTEFORCE (HIGH)\n2026-01-16 10:54:30 INFO [SCHEDULER] Heartbeat updated for all collectors"
+}

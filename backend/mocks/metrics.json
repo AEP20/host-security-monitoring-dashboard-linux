@@ -1,0 +1,37 @@
+{
+  "latest": {
+    "id": 1250,
+    "timestamp": "2026-01-16T10:55:00",
+    "cpu_percent": 23.5,
+    "ram_percent": 45.2,
+    "uptime_seconds": 302400,
+    "snapshot": {
+      "cpu": {
+        "total_percent": 23.5,
+        "per_cpu": [18.2, 25.1, 22.8, 27.9]
+      },
+      "memory": {
+        "ram": {
+          "percent": 45.2,
+          "used": 3686420480,
+          "total": 8589934592
+        },
+        "swap": {
+          "percent": 12.5,
+          "used": 536870912,
+          "total": 4294967296
+        }
+      },
+      "system": {
+        "uptime_seconds": 302400
+      }
+    }
+  },
+  "timeline": [
+    {"id": 1248, "timestamp": "2026-01-16T10:53:00", "snapshot": {"cpu": {"total_percent": 21.2}, "memory": {"ram": {"percent": 44.8}}}},
+    {"id": 1249, "timestamp": "2026-01-16T10:54:00", "snapshot": {"cpu": {"total_percent": 22.1}, "memory": {"ram": {"percent": 45.0}}}},
+    {"id": 1250, "timestamp": "2026-01-16T10:55:00", "snapshot": {"cpu": {"total_percent": 23.5}, "memory": {"ram": {"percent": 45.2}}}},
+    {"id": 1251, "timestamp": "2026-01-16T10:56:00", "snapshot": {"cpu": {"total_percent": 19.8}, "memory": {"ram": {"percent": 44.5}}}},
+    {"id": 1252, "timestamp": "2026-01-16T10:57:00", "snapshot": {"cpu": {"total_percent": 24.3}, "memory": {"ram": {"percent": 45.8}}}}
+  ]
+}
